@@ -19,6 +19,7 @@ class Price_Display
     private function __construct()
     {
         add_action('woocommerce_single_product_summary', [$this, 'display_b2b_price'], 15);
+        add_shortcode('justb2b_display_price', [$this, 'shortcode_b2b_price']);
     }
     
     /**
@@ -74,5 +75,34 @@ class Price_Display
 
         echo '</div>';
         echo '</div>';
+    }
+    
+    /**
+     * Shortcode for B2B price display
+     * Usage: [justb2b_price]
+     */
+    public function shortcode_b2b_price($atts)
+    {
+        // Get product from context
+        global $product;
+        
+        if (!$product) {
+            // Try to get from global post
+            global $post;
+            if ($post) {
+                $product = wc_get_product($post->ID);
+            }
+        }
+        
+        if (!$product) {
+            return '';
+        }
+        
+        // Start output buffering
+        ob_start();
+        
+        $this->display_b2b_price();
+        
+        return ob_get_clean();
     }
 }
