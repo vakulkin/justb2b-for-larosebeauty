@@ -24,6 +24,11 @@ class Registration_Handler {
 	public function init_hooks() {
 		add_filter( 'uwp_before_extra_fields_save', [ $this, 'handle_b2b_registration' ], 10, 3 );
 		add_action( 'updated_user_meta', [ $this, 'notify_user_on_approval' ], 10, 4 );
+		add_filter( 'uwp_users_search_where', [ $this, 'exclude_all_users_from_uwp_list' ], 10, 2 );
+		add_filter( 'uwp_account_available_tabs', [ $this, 'modify_account_tabs_for_b2b' ], 10, 1 );
+		// add_action( 'uwp_template_form_title_before', [ $this, 'start_buffering_account_sidebar' ], 10, 1 );
+		// add_action( 'uwp_template_form_title_after', [ $this, 'clear_buffering_account_sidebar' ], 10, 1 );
+		// add_filter( 'do_shortcode_tag', [ $this, 'filter_uwp_avatar_shortcode' ], 10, 4 );
 	}
 
 	/**
@@ -101,5 +106,61 @@ class Registration_Handler {
 		);
 
 		wp_mail( $user->user_email, $subject, $message );
+	}
+
+	/**
+	 * Exclude all users from UsersWP user listings for B2B users
+	 */
+	public function exclude_all_users_from_uwp_list( $where, $keyword ) {
+		// Only apply exclusion for B2B users
+		if ( Helper::is_b2b_accepted_user() ) {
+			// Add a WHERE condition that always evaluates to false
+			$where .= " AND 1=0";
+		}
+		return $where;
+	}
+
+	/**
+	 * Remove Notifications and Privacy tabs for B2B users
+	 */
+	public function modify_account_tabs_for_b2b( $tabs ) {
+		// Only modify tabs for B2B users
+		if ( Helper::is_b2b_accepted_user() ) {
+			// Remove notifications and privacy tabs
+			unset( $tabs['notifications'] );
+			unset( $tabs['privacy'] );
+		}
+		return $tabs;
+	}
+
+	/**
+	 * Start output buffering for account sidebar content (B2B users)
+	 */
+	public function start_buffering_account_sidebar( $type ) {
+		// Only buffer for account page and B2B users
+		if ( $type === 'account' && Helper::is_b2b_accepted_user() ) {
+			ob_start();
+		}
+	}
+
+	/**
+	 * Clear buffered account sidebar content for B2B users
+	 */
+	public function clear_buffering_account_sidebar( $type ) {
+		// Only clear buffer for account page and B2B users
+		if ( $type === 'account' && Helper::is_b2b_accepted_user() ) {
+			ob_end_clean(); // Discard the buffered content
+		}
+	}
+
+	/**
+	 * Hide user avatar widget for B2B users on account page
+	 */
+	public function filter_uwp_avatar_shortcode( $output, $tag, $attr, $m ) {
+		// Only filter uwp_user_avatar shortcode for B2B users on account page
+		if ( $tag === 'uwp_user_avatar' && Helper::is_b2b_accepted_user() && is_uwp_account_page() ) {
+			return ''; // Return empty string to hide avatar
+		}
+		return $output;
 	}
 }

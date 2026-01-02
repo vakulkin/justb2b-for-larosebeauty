@@ -25,6 +25,7 @@ class Billing_Handler {
 		add_filter( 'woocommerce_billing_fields', [ $this, 'hide_billing_fields_for_b2b_users' ], 10, 2 );
 		add_filter( 'woocommerce_checkout_get_value', [ $this, 'load_b2b_values_for_pending_user' ], 10, 2 );
 		add_filter( 'woocommerce_checkout_posted_data', [ $this, 'set_values_for_b2b_users' ] );
+		add_filter( 'woocommerce_account_menu_items', [ $this, 'add_b2b_menu_item' ], 40 );
 	}
 
 	public function get_field_map() {
@@ -77,6 +78,10 @@ class Billing_Handler {
 				}
 			}
 			echo '</div>';
+
+			if (Helper::is_b2b_accepted_user() && is_account_page()) {            	
+				echo do_action('uwp_account_form_display', 'account');
+			}
 		}
 	}
 
@@ -150,5 +155,22 @@ class Billing_Handler {
 
 		$data['billing_faktura'] = '1';
 		return $data;
+	}
+
+	/**
+	 * Add B2B Account tab to WooCommerce My Account menu
+	 */
+	public function add_b2b_menu_item( $items ) {
+		// Only show for B2B users
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return $items;
+		}
+
+		// Rename "Addresses" to "B2B Account" for B2B users
+		if ( isset( $items['edit-address'] ) ) {
+			$items['edit-address'] = __( 'Business Account', 'justb2b-larose' );
+		}
+
+		return $items;
 	}
 }
