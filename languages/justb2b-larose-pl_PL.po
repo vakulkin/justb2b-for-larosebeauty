@@ -1,0 +1,108 @@
+# Polish translations for JustB2B for larosebeauty
+# Copyright (C) 2024
+# This file is distributed under the same license as the JustB2B for larosebeauty package.
+msgid ""
+msgstr ""
+"Project-Id-Version: JustB2B for larosebeauty 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-02 12:00+0000\n"
+"PO-Revision-Date: 2024-01-02 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Polish\n"
+"Language: pl_PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+# ACF Fields
+msgid "B2B Price"
+msgstr "Cena B2B"
+
+msgid "B2B Price (Net)"
+msgstr "Cena B2B (Netto)"
+
+msgid "Enter the B2B net price for this product"
+msgstr "Wprowadź cenę netto B2B dla tego produktu"
+
+msgid "B2B Only Visible"
+msgstr "Widoczne tylko dla B2B"
+
+msgid "Select whether this product should be visible only to B2B customers"
+msgstr "Wybierz, czy produkt powinien być widoczny tylko dla klientów B2B"
+
+msgid "No (Visible to all customers)"
+msgstr "Nie (Widoczne dla wszystkich klientów)"
+
+msgid "Yes (B2B customers only)"
+msgstr "Tak (Tylko klienci B2B)"
+
+msgid "B2B/B2C Role"
+msgstr "Rola B2B/B2C"
+
+msgid "Customer Type"
+msgstr "Typ Klienta"
+
+msgid "Select whether this user is a B2C or B2B customer"
+msgstr "Wybierz, czy użytkownik jest klientem B2C czy B2B"
+
+msgid "B2C"
+msgstr "B2C"
+
+msgid "B2B Pending"
+msgstr "B2B Oczekujący"
+
+msgid "B2B Accepted"
+msgstr "B2B Zaakceptowany"
+
+# Price Display
+msgid "b2b:"
+msgstr "b2b:"
+
+msgid "net"
+msgstr "netto"
+
+msgid "rrp:"
+msgstr "cena katalogowa:"
+
+msgid "gross"
+msgstr "brutto"
+
+msgid "B2B Pricing"
+msgstr "Ceny B2B"
+
+msgid "B2B Price (Net):"
+msgstr "Cena B2B (Netto):"
+
+msgid "Regular Recommended Price (Gross):"
+msgstr "Zalecana Cena Regularna (Brutto):"
+
+# Billing Handler
+msgid "Notice:"
+msgstr "Uwaga:"
+
+msgid "Your business application is under review but meanwhile you can order as regular user."
+msgstr "Twoja aplikacja biznesowa jest w trakcie rozpatrywania, ale tymczasem możesz zamawiać jako zwykły użytkownik."
+
+msgid "Your business details"
+msgstr "Twoje dane biznesowe"
+
+# Registration Handler
+msgid "New B2B Account Request"
+msgstr "Nowe Żądanie Konta B2B"
+
+msgid "A new B2B account request has been submitted by %s (%s).\n\nYou can review and approve this request by visiting: %s"
+msgstr "Nowe żądanie konta B2B zostało złożone przez %s (%s).\n\nMożesz przejrzeć i zatwierdzić to żądanie odwiedzając: %s"
+
+msgid "Your B2B Account Has Been Approved"
+msgstr "Twoje Konto B2B Zostało Zatwierdzone"
+
+msgid "Congratulations %s!\n\nYour B2B account request has been approved. You now have access to B2B pricing and features.\n\nYour login details:\nUsername: %s\nIf you need to reset your password, please visit: %s\n\nThank you for your business!"
+msgstr "Gratulacje %s!\n\nTwoje żądanie konta B2B zostało zatwierdzone. Masz teraz dostęp do cen i funkcji B2B.\n\nTwoje dane logowania:\nNazwa użytkownika: %s\nJeśli potrzebujesz zresetować hasło, odwiedź: %s\n\nDziękujemy za współpracę!"
+
+# Main Plugin File
+msgid "JustB2B WooCommerce Extension requires WooCommerce to be installed and active."
+msgstr "Rozszerzenie JustB2B WooCommerce wymaga zainstalowanego i aktywnego WooCommerce."
+
+msgid "JustB2B WooCommerce Extension requires Advanced Custom Fields (ACF) to be installed and active."
+msgstr "Rozszerzenie JustB2B WooCommerce wymaga zainstalowanych i aktywnych Advanced Custom Fields (ACF)."

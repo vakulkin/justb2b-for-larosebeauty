@@ -31,14 +31,14 @@ class ACF_Fields
         if (function_exists('acf_add_local_field_group')) {
             acf_add_local_field_group(array(
                 'key' => 'group_justb2b_product',
-                'title' => 'B2B Price',
+                'title' => __('B2B Price', 'justb2b-larose'),
                 'fields' => array(
                     array(
                         'key' => 'field_justb2b_price',
-                        'label' => 'B2B Price (Netto)',
+                        'label' => __('B2B Price (Net)', 'justb2b-larose'),
                         'name' => 'justb2b_price',
                         'type' => 'number',
-                        'instructions' => 'Enter the B2B net price for this product',
+                        'instructions' => __('Enter the B2B net price for this product', 'justb2b-larose'),
                         'required' => 0,
                         'conditional_logic' => 0,
                         'wrapper' => array(
@@ -50,9 +50,34 @@ class ACF_Fields
                         'placeholder' => '0.00',
                         'prepend' => get_woocommerce_currency_symbol(),
                         'append' => '',
-                        'min' => 0,
+                        'min' => 0.01,
                         'max' => '',
                         'step' => 0.01,
+                    ),
+                    array(
+                        'key' => 'field_justb2b_only_visible',
+                        'label' => __('B2B Only Visible', 'justb2b-larose'),
+                        'name' => 'justb2b_only_visible',
+                        'type' => 'select',
+                        'instructions' => __('Select whether this product should be visible only to B2B customers', 'justb2b-larose'),
+                        'required' => 0,
+                        'conditional_logic' => 0,
+                        'wrapper' => array(
+                            'width' => '',
+                            'class' => '',
+                            'id' => '',
+                        ),
+                        'choices' => array(
+                            'no' => __('No (Visible to all customers)', 'justb2b-larose'),
+                            'yes' => __('Yes (B2B customers only)', 'justb2b-larose'),
+                        ),
+                        'default_value' => 'no',
+                        'allow_null' => 0,
+                        'multiple' => 0,
+                        'ui' => 1,
+                        'ajax' => 0,
+                        'return_format' => 'value',
+                        'placeholder' => '',
                     ),
                 ),
                 'location' => array(
@@ -84,14 +109,14 @@ class ACF_Fields
         if (function_exists('acf_add_local_field_group')) {
             acf_add_local_field_group(array(
                 'key' => 'group_justb2b_user',
-                'title' => 'B2B/B2C Role',
+                'title' => __('B2B/B2C Role', 'justb2b-larose'),
                 'fields' => array(
                     array(
                         'key' => 'field_justb2b_role',
-                        'label' => 'Customer Type',
+                        'label' => __('Customer Type', 'justb2b-larose'),
                         'name' => 'justb2b_role',
                         'type' => 'select',
-                        'instructions' => 'Select whether this user is a B2C or B2B customer',
+                        'instructions' => __('Select whether this user is a B2C or B2B customer', 'justb2b-larose'),
                         'required' => 0,
                         'conditional_logic' => 0,
                         'wrapper' => array(
@@ -100,8 +125,9 @@ class ACF_Fields
                             'id' => '',
                         ),
                         'choices' => array(
-                            'b2c' => 'B2C (Business to Consumer)',
-                            'b2b' => 'B2B (Business to Business)',
+                            'b2c' => __('B2C', 'justb2b-larose'),
+                            'b2b_pending' => __('B2B Pending', 'justb2b-larose'),
+                            'b2b_accepted' => __('B2B Accepted', 'justb2b-larose'),
                         ),
                         'default_value' => 'b2c',
                         'allow_null' => 0,

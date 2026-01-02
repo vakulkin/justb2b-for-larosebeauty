@@ -1,0 +1,99 @@
+/* JustB2B Billing Styles - Modern Design */
+
+.justb2b-billing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.justb2b-field-item {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #f3f4f6;
+}
+
+.justb2b-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.justb2b-field-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .justb2b-billing-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin: 16px 0;
+    }
+
+    .justb2b-field-item {
+        padding: 12px;
+    }
+}
+
+.justb2b-price-info-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.justb2b-price-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.justb2b-notice {
+    margin: 10px 0 40px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* B2B Notice Styles */
+.justb2b-notice.pending {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.justb2b-notice.pending strong {
+    font-weight: 600;
+}
+
+.wcpt-filter-heading {
+    display: none !important;
+}
+
+.wcpt-navigation.wcpt-header .wcpt-options-row .wcpt-option {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.wcpt-navigation.wcpt-header .wcpt-options-row .wcpt-option label {
+    background-color: #ffeaa7 !important;
+    border-radius: 25px !important;
+} 
+
+.wcpt-navigation.wcpt-header .wcpt-options-row .wcpt-option .wcpt-active {
+    background-color: #856404 !important;
+    color: #f3f4f6 !important;
+}
+
+body:not(.wcpt-nav-modal-on) .wcpt-navigation .wcpt-filter input[type="checkbox"],
+body:not(.wcpt-nav-modal-on) .wcpt-navigation .wcpt-filter input[type="radio"] {
+    display: none !important;
+}

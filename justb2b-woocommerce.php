@@ -3,7 +3,7 @@
 /**
  * Plugin Name: JustB2B for larosebeauty
  * Description: Simple B2B extension for WooCommerce with ACF integration
- * Text Domain: justb2b-woocommerce
+ * Text Domain: justb2b-larose
  */
 
 // Exit if accessed directly
@@ -58,6 +58,7 @@ final class JustB2B_WooCommerce
     {
         add_action('before_woocommerce_init', [$this, 'declare_hpos_compatibility']);
         add_action('plugins_loaded', [$this, 'init']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_styles']);
     }
     
     public function declare_hpos_compatibility()
@@ -73,6 +74,9 @@ final class JustB2B_WooCommerce
             return;
         }
         
+        // Load plugin text domain
+        load_plugin_textdomain('justb2b-larose', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+        
         // Mark justb2b cache group as non-persistent (only for current page load)
         wp_cache_add_non_persistent_groups('justb2b');
         
@@ -80,20 +84,34 @@ final class JustB2B_WooCommerce
         \JustB2B\ACF_Fields::instance();
         \JustB2B\Price_Display::instance();
         \JustB2B\Cart_Handler::instance();
+        \JustB2B\Billing_Handler::instance();
+        \JustB2B\Product_Visibility::instance();
+        \JustB2B\Registration_Handler::instance();
+        \JustB2B\Menu_Handler::instance();
+    }
+    
+    public function enqueue_styles()
+    {
+        wp_enqueue_style(
+            'justb2b-styles',
+            JUSTB2B_PLUGIN_URL . 'assets/style.css',
+            array(),
+            JUSTB2B_VERSION
+        );
     }
     
     private function check_dependencies()
     {
         if (!class_exists('WooCommerce')) {
             add_action('admin_notices', function () {
-                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires WooCommerce to be installed and active.', 'justb2b-woocommerce') . '</p></div>';
+                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires WooCommerce to be installed and active.', 'justb2b-larose') . '</p></div>';
             });
             return false;
         }
         
         if (!function_exists('acf_add_local_field_group')) {
             add_action('admin_notices', function () {
-                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires Advanced Custom Fields (ACF) to be installed and active.', 'justb2b-woocommerce') . '</p></div>';
+                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires Advanced Custom Fields (ACF) to be installed and active.', 'justb2b-larose') . '</p></div>';
             });
             return false;
         }
