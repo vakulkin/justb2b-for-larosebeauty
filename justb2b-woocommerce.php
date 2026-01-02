@@ -116,6 +116,13 @@ final class JustB2B_WooCommerce
             return false;
         }
         
+        if (!function_exists('uwp_get_option')) {
+            add_action('admin_notices', function () {
+                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires UsersWP to be installed and active.', 'justb2b-larose') . '</p></div>';
+            });
+            return false;
+        }
+        
         return true;
     }
 }
