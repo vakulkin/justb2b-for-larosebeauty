@@ -88,6 +88,7 @@ final class JustB2B_WooCommerce
         \JustB2B\Product_Visibility::instance();
         \JustB2B\Registration_Handler::instance();
         \JustB2B\Menu_Handler::instance();
+        \JustB2B\WCProductTableLitePro::instance();
     }
     
     public function enqueue_styles()
