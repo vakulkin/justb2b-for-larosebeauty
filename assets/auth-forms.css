@@ -1,0 +1,437 @@
+/* ============================================
+   VERCEL-INSPIRED B2B REGISTRATION FORM STYLES
+   ============================================ */
+
+/* Container */
+#main-content .uwp-register-class {
+  max-width: 480px;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+/* Card Design */
+#main-content .uwp-register-class .card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 
+              0 2px 4px rgba(0, 0, 0, 0.05), 
+              0 12px 24px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  border: none;
+}
+
+#main-content .uwp-register-class .card-body {
+  padding: 48px 40px;
+}
+
+/* Title */
+#main-content .uwp-register-class .card-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 32px;
+  letter-spacing: -0.02em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Form Inputs */
+#main-content .uwp-register-class .form-control {
+  height: 48px;
+  padding: 0 16px;
+  font-size: 15px;
+  line-height: 48px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.15s ease;
+  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-register-class .form-control:focus {
+  outline: none;
+  border-color: #000;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+#main-content .uwp-register-class .form-control::placeholder {
+  color: #71717a;
+}
+
+/* Password Fields with Eye Icon */
+#main-content .uwp-register-class .uwp-password-wrap {
+  position: relative;
+}
+
+#main-content .uwp-register-class .uwp-password-wrap .input-group {
+  position: relative;
+  display: block;
+}
+
+#main-content .uwp-register-class .uwp-password-wrap .input-group .form-control {
+  padding-right: 48px;
+  width: 100%;
+}
+
+#main-content .uwp-register-class .uwp-password-wrap .input-group-text {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  height: auto;
+  width: 46px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  border-radius: 0 8px 8px 0;
+}
+
+#main-content .uwp-register-class .uwp-password-wrap .input-group-text:hover {
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+#main-content .uwp-register-class .uwp-password-wrap .input-group-text i {
+  color: #71717a;
+  font-size: 16px;
+}
+
+/* Form Spacing */
+#main-content .uwp-register-class .mb-3 {
+  margin-bottom: 16px !important;
+}
+
+/* Submit Button */
+#main-content .uwp-register-class .btn-primary {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-register-class .btn-primary:hover {
+  background: #18181b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#main-content .uwp-register-class .btn-primary:active {
+  transform: translateY(0);
+}
+
+#main-content .uwp-register-class .btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Footer Links */
+#main-content .uwp-register-class .uwp-footer-links {
+  margin-top: 24px;
+}
+
+#main-content .uwp-register-class .uwp-footer-link a {
+  color: #71717a;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-register-class .uwp-footer-link a:hover {
+  color: #000;
+}
+
+/* Hidden Labels */
+#main-content .uwp-register-class .visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  #main-content .uwp-register-class {
+    margin: 40px auto;
+    padding: 0 16px;
+  }
+  
+  #main-content .uwp-register-class .card-body {
+    padding: 32px 24px;
+  }
+  
+  #main-content .uwp-register-class .card-title {
+    font-size: 20px;
+    margin-bottom: 24px;
+  }
+}
+
+/* ============================================
+   VERCEL-INSPIRED B2B LOGIN FORM STYLES
+   ============================================ */
+
+/* Container */
+#main-content .uwp-login-class {
+  max-width: 480px;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+/* Card Design */
+#main-content .uwp-login-class .card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 
+              0 2px 4px rgba(0, 0, 0, 0.05), 
+              0 12px 24px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  border: none;
+}
+
+#main-content .uwp-login-class .card-body {
+  padding: 48px 40px;
+}
+
+/* Title */
+#main-content .uwp-login-class .card-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 32px;
+  letter-spacing: -0.02em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Form Inputs */
+#main-content .uwp-login-class .form-control {
+  height: 48px;
+  padding: 0 16px;
+  font-size: 15px;
+  line-height: 48px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.15s ease;
+  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-login-class .form-control:focus {
+  outline: none;
+  border-color: #000;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+#main-content .uwp-login-class .form-control::placeholder {
+  color: #71717a;
+}
+
+/* Password Fields with Eye Icon */
+#main-content .uwp-login-class .uwp-password-wrap {
+  position: relative;
+}
+
+#main-content .uwp-login-class .uwp-password-wrap .input-group {
+  position: relative;
+  display: block;
+}
+
+#main-content .uwp-login-class .uwp-password-wrap .input-group .form-control {
+  padding-right: 48px;
+  width: 100%;
+}
+
+#main-content .uwp-login-class .uwp-password-wrap .input-group-text {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  height: auto;
+  width: 46px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  border-radius: 0 8px 8px 0;
+}
+
+#main-content .uwp-login-class .uwp-password-wrap .input-group-text:hover {
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+#main-content .uwp-login-class .uwp-password-wrap .input-group-text i {
+  color: #71717a;
+  font-size: 16px;
+}
+
+/* Remember Me Checkbox */
+#main-content .uwp-login-class .uwp-remember-me {
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+#main-content .uwp-login-class .form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#main-content .uwp-login-class .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#main-content .uwp-login-class .form-check-input:checked {
+  background-color: #000;
+  border-color: #000;
+}
+
+#main-content .uwp-login-class .form-check-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+#main-content .uwp-login-class .form-check-label {
+  font-size: 14px;
+  color: #52525b;
+  cursor: pointer;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Form Spacing */
+#main-content .uwp-login-class .mb-3 {
+  margin-bottom: 16px !important;
+}
+
+/* Submit Button */
+#main-content .uwp-login-class .btn-primary {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-login-class .btn-primary:hover {
+  background: #18181b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#main-content .uwp-login-class .btn-primary:active {
+  transform: translateY(0);
+}
+
+#main-content .uwp-login-class .btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Footer Links */
+#main-content .uwp-login-class .uwp-footer-links {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+#main-content .uwp-login-class .uwp-footer-link {
+  flex: 1;
+}
+
+#main-content .uwp-login-class .uwp-footer-link a {
+  color: #71717a;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#main-content .uwp-login-class .uwp-footer-link a:hover {
+  color: #000;
+}
+
+/* Hidden Labels */
+#main-content .uwp-login-class .visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  #main-content .uwp-login-class {
+    margin: 40px auto;
+    padding: 0 16px;
+  }
+  
+  #main-content .uwp-login-class .card-body {
+    padding: 32px 24px;
+  }
+  
+  #main-content .uwp-login-class .card-title {
+    font-size: 20px;
+    margin-bottom: 24px;
+  }
+  
+  #main-content .uwp-login-class .uwp-footer-links {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  #main-content .uwp-login-class .uwp-footer-link {
+    width: 100%;
+    text-align: center;
+  }
+  
+  #main-content .uwp-login-class .uwp-footer-link.float-end {
+    float: none !important;
+  }
+}
