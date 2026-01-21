@@ -63,13 +63,19 @@ msgid "net"
 msgstr "netto"
 
 msgid "rrp:"
-msgstr "cena katalogowa:"
+msgstr "cena rrp:"
 
 msgid "gross"
 msgstr "brutto"
 
 msgid "B2B Pricing"
 msgstr "Ceny B2B"
+
+msgid "B2B Price:"
+msgstr "Cena B2B:"
+
+msgid "RRP:"
+msgstr "RRP:"
 
 msgid "B2B Price (Net):"
 msgstr "Cena B2B (Netto):"
@@ -86,6 +92,12 @@ msgstr "Twoja aplikacja biznesowa jest w trakcie rozpatrywania, ale tymczasem mo
 
 msgid "Your business details"
 msgstr "Twoje dane biznesowe"
+
+msgid "B2B Product list"
+msgstr "Lista produktów B2B"
+
+msgid "Business account"
+msgstr "Konto biznesowe"
 
 # Registration Handler
 msgid "New B2B Account Request"

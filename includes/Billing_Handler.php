@@ -26,6 +26,8 @@ class Billing_Handler {
 		add_filter( 'woocommerce_checkout_get_value', [ $this, 'load_b2b_values_for_pending_user' ], 10, 2 );
 		add_filter( 'woocommerce_checkout_posted_data', [ $this, 'set_values_for_b2b_users' ] );
 		add_filter( 'woocommerce_account_menu_items', [ $this, 'add_b2b_menu_item' ], 40 );
+		add_filter( 'woocommerce_get_endpoint_url', [ $this, 'b2b_products_menu_link' ], 10, 4 );
+
 	}
 
 	public function get_field_map() {
@@ -166,11 +168,31 @@ class Billing_Handler {
 			return $items;
 		}
 
-		// Rename "Addresses" to "B2B Account" for B2B users
-		if ( isset( $items['edit-address'] ) ) {
-			$items['edit-address'] = __( 'Business Account', 'justb2b-larose' );
+		// Insert B2B Products link after orders
+		$new_items = [];
+		foreach ( $items as $key => $value ) {
+			$new_items[ $key ] = $value;
+			// Add B2B Products after orders
+			if ( $key === 'orders' ) {
+				$new_items['b2b-products'] = __( 'B2B Product list', 'justb2b-larose' );
+			}
 		}
 
-		return $items;
+		// Rename "Addresses" to "Business Account" for B2B users
+		if ( isset( $new_items['edit-address'] ) ) {
+			$new_items['edit-address'] = __( 'Business account', 'justb2b-larose' );
+		}
+
+		return $new_items;
+	}
+
+	/**
+	 * Set custom URL for B2B Products menu item
+	 */
+	public function b2b_products_menu_link( $url, $endpoint, $value, $permalink ) {
+		if ( $endpoint === 'b2b-products' ) {
+			return home_url( '/b2b-products/' );
+		}
+		return $url;
 	}
 }

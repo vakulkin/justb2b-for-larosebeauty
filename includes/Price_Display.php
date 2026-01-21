@@ -17,6 +17,18 @@ class Price_Display {
 	private function __construct() {
 		add_action( 'woocommerce_get_price_html', [ $this, 'hide_price_for_b2b_users' ], 10, 2 );
 		add_shortcode( 'justb2b_display_price', [ $this, 'shortcode_b2b_price' ] );
+		
+		// Display net prices in cart/checkout for B2B users
+		add_filter( 'woocommerce_cart_item_price', [ $this, 'display_net_price_in_cart' ], 10, 3 );
+		add_filter( 'woocommerce_cart_item_subtotal', [ $this, 'display_net_subtotal_in_cart' ], 10, 3 );
+		
+		// Display net prices in mini cart for B2B users
+		add_filter( 'woocommerce_widget_cart_item_quantity', [ $this, 'display_net_price_in_minicart' ], 10, 3 );
+		
+		// Hide tax rows in cart/checkout for B2B users
+		add_filter( 'woocommerce_cart_totals_order_total_html', [ $this, 'show_only_total_in_cart' ], 10, 1 );
+		add_action( 'woocommerce_cart_totals_before_order_total', [ $this, 'hide_tax_rows_in_cart' ] );
+		add_action( 'woocommerce_review_order_before_order_total', [ $this, 'hide_tax_rows_in_checkout' ] );
 	}
 
 	/**
@@ -86,17 +98,17 @@ class Price_Display {
 		$regular_price = $product->get_regular_price();
 
 		// Display B2B prices
-		echo '<div class="justb2b-price-info" style="margin: 15px 0; padding: 15px; background: #f7f7f7; border-left: 4px solid #2c3e50;">';
-		echo '<h4 style="margin: 0 0 10px 0; color: #2c3e50;">' . __( 'B2B Pricing', 'justb2b-larose' ) . '</h4>';
-
-		echo '<div class="b2b-price-row" style="margin-bottom: 8px;">';
-		echo '<strong>' . __( 'B2B Price (Net):', 'justb2b-larose' ) . '</strong> ';
+		echo '<div class="justb2b-price-info">';
+		echo '<div class="b2b-price-row">';
+		echo '<strong>' . __( 'B2B Price:', 'justb2b-larose' ) . '</strong> ';
 		echo wc_price( $b2b_netto );
+		echo ' <small>' . __( 'net', 'justb2b-larose' ) . '</small>';
 		echo '</div>';
 
 		echo '<div class="b2b-price-row">';
-		echo '<strong>' . __( 'Regular Recommended Price (Gross):', 'justb2b-larose' ) . '</strong> ';
+		echo '<strong>' . __( 'RRP:', 'justb2b-larose' ) . '</strong> ';
 		echo wc_price( $regular_price );
+		echo ' <small>' . __( 'gross', 'justb2b-larose' ) . '</small>';
 
 		echo '</div>';
 		echo '</div>';
@@ -128,5 +140,132 @@ class Price_Display {
 		$this->display_b2b_price();
 
 		return ob_get_clean();
+	}
+
+	/**
+	 * Get B2B prices (net and gross) for a product
+	 *
+	 * @param object $product WooCommerce product
+	 * @param int $quantity Product quantity
+	 * @return array|false Array with 'net' and 'gross' keys, or false if no B2B price
+	 */
+	private function get_b2b_prices( $product, $quantity = 1 ) {
+		$product_id = $product->get_id();
+		$b2b_price = Helper::get_product_b2b_price( $product_id );
+
+		if ( ! $b2b_price ) {
+			return false;
+		}
+
+		$tax_rate = Helper::get_product_tax_rate( $product );
+		$b2b_brutto = Helper::calculate_brutto( $b2b_price, $tax_rate );
+
+		return [
+			'net' => $b2b_price * $quantity,
+			'gross' => $b2b_brutto * $quantity,
+		];
+	}
+
+	/**
+	 * Format price HTML with net and gross display
+	 *
+	 * @param float $net_price Net price
+	 * @param float $gross_price Gross price
+	 * @return string Formatted HTML
+	 */
+	private function format_dual_price( $net_price, $gross_price ) {
+		return wp_strip_all_tags( wc_price( $net_price ) ) . ' <small>' . __( 'net', 'justb2b-larose' ) . '</small><br>' .
+		       '<span class="justb2b-gross-price">' . wp_strip_all_tags( wc_price( $gross_price ) ) . ' <small>' . __( 'gross', 'justb2b-larose' ) . '</small></span>';
+	}
+
+	/**
+	 * Display net and gross price for cart items (B2B users)
+	 */
+	public function display_net_price_in_cart( $price, $cart_item, $cart_item_key ) {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return $price;
+		}
+
+		$prices = $this->get_b2b_prices( $cart_item['data'] );
+		
+		return $prices ? $this->format_dual_price( $prices['net'], $prices['gross'] ) : $price;
+	}
+
+	/**
+	 * Display net and gross subtotal for cart items (B2B users)
+	 */
+	public function display_net_subtotal_in_cart( $subtotal, $cart_item, $cart_item_key ) {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return $subtotal;
+		}
+
+		$prices = $this->get_b2b_prices( $cart_item['data'], $cart_item['quantity'] );
+		
+		return $prices ? $this->format_dual_price( $prices['net'], $prices['gross'] ) : $subtotal;
+	}
+
+	/**
+	 * Display net and gross price in mini cart for B2B users
+	 */
+	public function display_net_price_in_minicart( $quantity_html, $cart_item, $cart_item_key ) {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return $quantity_html;
+		}
+
+		$prices = $this->get_b2b_prices( $cart_item['data'] );
+		
+		if ( ! $prices ) {
+			return $quantity_html;
+		}
+
+		$quantity = $cart_item['quantity'];
+
+		return '<span class="quantity">' . $quantity . ' &times; ' .
+		       wp_strip_all_tags( wc_price( $prices['net'] ) ) . ' <small>' . __( 'net', 'justb2b-larose' ) . '</small><br>' .
+		       '<span class="justb2b-minicart-gross">' . wp_strip_all_tags( wc_price( $prices['gross'] ) ) . ' <small>' . __( 'gross', 'justb2b-larose' ) . '</small></span>' .
+		       '</span>';
+	}
+
+	/**
+	 * Show only final total for B2B users
+	 */
+	public function show_only_total_in_cart( $value ) {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return $value;
+		}
+
+		// Return the total including tax (gross total)
+		return wc_price( WC()->cart->get_total( 'edit' ) );
+	}
+
+	/**
+	 * Output CSS to hide specific elements
+	 *
+	 * @param string $selector CSS selector to hide
+	 */
+	private function output_hide_css( $selector ) {
+		echo '<style>' . esc_html( $selector ) . ' { display: none !important; }</style>';
+	}
+
+	/**
+	 * Hide tax rows in cart for B2B users
+	 */
+	public function hide_tax_rows_in_cart() {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return;
+		}
+
+		$this->output_hide_css( '.cart_totals .tax-total, .cart_totals .shipping' );
+	}
+
+	/**
+	 * Hide tax rows in checkout for B2B users
+	 */
+	public function hide_tax_rows_in_checkout() {
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return;
+		}
+
+		$this->output_hide_css( '.woocommerce-checkout-review-order-table .tax-total, .woocommerce-checkout-review-order-table .shipping' );
 	}
 }
