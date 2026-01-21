@@ -117,10 +117,6 @@
 
 /* Custom WCPT Styles */
 
-.wcpt-filter-heading {
-    display: none !important;
-}
-
 .wcpt-filter .wcpt-options {
     display: flex !important;
     flex-wrap: wrap !important;
