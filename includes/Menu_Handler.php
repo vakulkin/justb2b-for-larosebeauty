@@ -36,10 +36,10 @@ class Menu_Handler {
 				$args['menu'] = 'b2b-main-menu';
 			}
 			
-			// Check if menu is an object with the name or slug
-			if ( is_object( $menu ) && ( $menu->slug === 'menu-glowne' || $menu->name === 'Menu główne' ) ) {
-				$args['menu'] = 'b2b-main-menu';
-			}
+			// // Check if menu is an object with the name or slug
+			// if ( is_object( $menu ) && ( $menu->slug === 'menu-glowne' || $menu->name === 'Menu główne' ) ) {
+			// 	$args['menu'] = 'b2b-main-menu';
+			// }
 		}
 
 		return $args;
