@@ -20,6 +20,7 @@ class Billing_Handler {
 		add_action( 'woocommerce_before_checkout_billing_form', [ $this, 'render_b2b_pending_notice' ] );
 		add_action( 'woocommerce_before_checkout_billing_form', [ $this, 'render_values_for_b2b_users' ] );
 		add_action( 'woocommerce_account_content', [ $this, 'render_b2b_pending_notice' ], 5 );
+		add_action( 'wcpt_before_loop', [ $this, 'render_b2b_pending_notice' ] );
 		add_action( 'woocommerce_before_edit_account_address_form', [ $this, 'start_buffering_form' ] );
 		add_action( 'woocommerce_after_edit_account_address_form', [ $this, 'end_buffering_form' ] );
 		add_filter( 'woocommerce_billing_fields', [ $this, 'hide_billing_fields_for_b2b_users' ], 10, 2 );
