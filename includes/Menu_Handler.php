@@ -30,16 +30,14 @@ class Menu_Handler {
 		// Check if this is the main menu (by menu slug, ID, or name)
 		if ( isset( $args['menu'] ) ) {
 			$menu = $args['menu'];
-			
+
 			// Check if it's the main menu by slug or ID
-			if ( $menu === 'menu-glowne' || $menu === 'menu-2' || $menu === 'Menu główne' ) {
+			if ( $menu === 'menu-glowne'
+				// || $menu === 'menu-2' || $menu === 'Menu główne'
+			) {
 				$args['menu'] = 'b2b-main-menu';
 			}
-			
-			// // Check if menu is an object with the name or slug
-			// if ( is_object( $menu ) && ( $menu->slug === 'menu-glowne' || $menu->name === 'Menu główne' ) ) {
-			// 	$args['menu'] = 'b2b-main-menu';
-			// }
+
 		}
 
 		return $args;
