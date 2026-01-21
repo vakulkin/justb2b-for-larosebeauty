@@ -16,7 +16,7 @@ class B2B_Button_Shortcode
 
     private function __construct()
     {
-        add_shortcode('b2b_button', [$this, 'render_button']);
+        add_shortcode('justb2b_button', [$this, 'render_button']);
     }
 
     /**
