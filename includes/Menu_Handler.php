@@ -28,6 +28,7 @@ class Menu_Handler
     {
         // Only modify if user is B2B accepted and menu location is 'main-menu'
         if (Helper::is_b2b_accepted_user() && isset($args['theme_location']) && $args['theme_location'] === 'main-menu') {
+            var_dump($args);
             $args['menu'] = 'b2b-main-menu';
         }
 
