@@ -49,7 +49,7 @@ class B2B_Button_Shortcode
         }
 
         // Build button classes
-        $classes = 'btn btn-style-primary btn-shape-rectangle btn-size-default';
+        $classes = 'btn btn btn-color-primary btn-style-default btn-shape-rectangle btn-size-default';
 
         // Build button HTML
         $html = sprintf(
