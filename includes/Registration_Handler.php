@@ -61,8 +61,8 @@ class Registration_Handler {
 	public function send_admin_notification( $user_id ) {
 		$user = get_userdata( $user_id );
 		// TODO: Uncomment it
-		// $admin_email = get_option( 'admin_email' );
-		$admin_email = 'studio@thenewlook.pl';
+		$admin_email = get_option( 'admin_email' );
+		// $admin_email = 'studio@thenewlook.pl';
 		$user_edit_link = admin_url( 'user-edit.php?user_id=' . $user_id );
 
 		$subject = __( 'New B2B Account Request', 'justb2b-larose' );
@@ -98,6 +98,9 @@ class Registration_Handler {
 	public function send_user_approval_notification( $user_id ) {
 		$user = get_userdata( $user_id );
 
+		// Get login page URL from UsersWP
+		$login_link = uwp_get_login_page_url();
+
 		// Get forgot password page URL from UsersWP
 		$password_reset_link = wp_lostpassword_url(); // fallback
 		$forgot_page_data = uwp_get_page_url_data( 'forgot_page', 'array' );
@@ -107,9 +110,10 @@ class Registration_Handler {
 
 		$subject = __( 'Your B2B Account Has Been Approved', 'justb2b-larose' );
 		$message = sprintf(
-			__( 'Congratulations %s!' . "\n\n" . 'Your B2B account request has been approved. You now have access to B2B pricing and features.' . "\n\n" . 'Your login details:' . "\n" . 'Username: %s' . "\n" . 'If you need to reset your password, please visit: %s' . "\n\n" . 'Thank you for your business!', 'justb2b-larose' ),
+			__( 'Congratulations %s!' . "\n\n" . 'Your B2B account request has been approved. You now have access to B2B pricing and features.' . "\n\n" . 'Your login details:' . "\n" . 'Username: %s' . "\n" . 'Login here: %s' . "\n" . 'If you need to reset your password, please visit: %s' . "\n\n" . 'Thank you for your business!', 'justb2b-larose' ),
 			$user->display_name,
 			$user->user_login,
+			$login_link,
 			$password_reset_link
 		);
 
