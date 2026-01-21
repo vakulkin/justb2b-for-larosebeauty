@@ -63,7 +63,7 @@ msgid "net"
 msgstr "netto"
 
 msgid "rrp:"
-msgstr "cena rrp:"
+msgstr "rrp:"
 
 msgid "gross"
 msgstr "brutto"
