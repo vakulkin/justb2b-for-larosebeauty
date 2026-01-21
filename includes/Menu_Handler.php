@@ -23,7 +23,7 @@ class Menu_Handler {
 	 */
 	public function switch_menu_for_b2b_users( $args ) {
 		// Only modify if user is B2B accepted and menu location is 'main-menu'
-		if ( Helper::is_b2b_accepted_user() && isset( $args['menu'] ) && $args['menu'] === 'menu-2' ) {
+		if ( Helper::is_b2b_accepted_user() && isset( $args['menu'] ) && $args['menu'] === 'menu-menu-glowne' ) {
 			$args['menu'] = 'b2b-main-menu';
 		}
 		return $args;
