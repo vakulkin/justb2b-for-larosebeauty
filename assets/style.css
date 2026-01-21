@@ -163,9 +163,9 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     margin-bottom: 26px;
 }
 
-.uwp-footer-links {
+/* .uwp-footer-links {
     display: none !important;
-}
+} */
 
 .bsui .card {
     border-radius: 0 !important;
