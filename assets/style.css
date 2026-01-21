@@ -213,8 +213,7 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     border-color: #6a5a44 !important;   
 }
 
-
-.bsui .visually-hidden, .bsui .visually-hidden-focusable:not(:focus):not(:focus-within) {
+.bsui .justb2b_form .visually-hidden, .bsui .justb2b_form .visually-hidden-focusable:not(:focus):not(:focus-within) {
     position: static !important;
     width: auto !important;
     height: auto !important;
