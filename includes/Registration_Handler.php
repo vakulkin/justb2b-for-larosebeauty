@@ -23,7 +23,7 @@ class Registration_Handler {
 	 */
 	public function init_hooks() {
 		add_filter( 'uwp_before_extra_fields_save', [ $this, 'handle_b2b_registration' ], 10, 3 );
-		add_action( 'updated_user_meta', [ $this, 'notify_user_on_approval' ], 10, 4 );
+		add_action( 'update_user_meta', [ $this, 'notify_user_on_approval' ], 10, 4 );
 		add_filter( 'uwp_users_search_where', [ $this, 'exclude_all_users_from_uwp_list' ], 10, 2 );
 		add_filter( 'uwp_account_available_tabs', [ $this, 'modify_account_tabs_for_b2b' ], 10, 1 );
 		
@@ -79,11 +79,14 @@ class Registration_Handler {
 	/**
 	 * Notify user when B2B role changes to accepted
 	 */
-	public function notify_user_on_approval( $meta_id, $user_id, $meta_key, $meta_value ) {
-		if ( $meta_key === 'justb2b_role' && $meta_value === 'b2b_accepted' ) {
-			// Check if the value actually changed
+	public function notify_user_on_approval( $meta_id, $user_id, $meta_key, $_meta_value ) {
+		if ( $meta_key === 'justb2b_role' ) {
+			// Get the old value before update
 			$old_value = get_user_meta( $user_id, 'justb2b_role', true );
-			if ( $old_value !== 'b2b_accepted' ) {
+			// Get the new value from POST or other source
+			$new_value = isset( $_POST['justb2b_role'] ) ? $_POST['justb2b_role'] : $_meta_value;
+			
+			if ( $old_value !== 'b2b_accepted' && $new_value === 'b2b_accepted' ) {
 				$this->send_user_approval_notification( $user_id );
 			}
 		}

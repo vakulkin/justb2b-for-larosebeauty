@@ -43,9 +43,9 @@ class B2B_Button_Shortcode
             $button_text = 'Strefa B2B';
             $button_url = home_url('/b2b-products/');
         } else {
-            // Not logged in -> "Strefa B2B" -> /register
+            // Not logged in -> "Strefa B2B" -> /register-login/
             $button_text = 'Strefa B2B';
-            $button_url = home_url('/register/');
+            $button_url = home_url('/register-login/');
         }
 
         // Build button classes
