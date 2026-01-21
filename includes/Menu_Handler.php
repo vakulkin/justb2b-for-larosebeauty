@@ -22,14 +22,10 @@ class Menu_Handler {
 	 * Switch menu location for B2B accepted users
 	 */
 	public function switch_menu_for_b2b_users( $args ) {
-		if ( current_user_can( 'manage_options' ) ) {
-			var_dump( $args );
-		}
 		// Only modify if user is B2B accepted and menu location is 'main-menu'
 		if ( Helper::is_b2b_accepted_user() && isset( $args['menu'] ) && $args['menu'] === 'menu-2' ) {
 			$args['menu'] = 'b2b-main-menu';
 		}
-
 		return $args;
 	}
 }
