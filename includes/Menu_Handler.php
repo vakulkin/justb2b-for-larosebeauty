@@ -32,9 +32,7 @@ class Menu_Handler {
 			$menu = $args['menu'];
 
 			// Check if it's the main menu by slug or ID
-			if ( $menu === 'menu-glowne'
-				// || $menu === 'menu-2' || $menu === 'Menu główne'
-			) {
+			if ( $menu === 'menu-glowne' ) {
 				$args['menu'] = 'b2b-main-menu';
 			}
 

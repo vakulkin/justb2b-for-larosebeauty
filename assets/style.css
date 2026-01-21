@@ -212,3 +212,17 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     background: #6a5a44 !important;
     border-color: #6a5a44 !important;   
 }
+
+
+.bsui .visually-hidden, .bsui .visually-hidden-focusable:not(:focus):not(:focus-within) {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-bottom: 5px !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+    border: none !important;
+}
