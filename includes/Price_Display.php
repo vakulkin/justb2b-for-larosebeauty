@@ -23,12 +23,7 @@ class Price_Display {
 		add_filter( 'woocommerce_cart_item_subtotal', [ $this, 'display_net_subtotal_in_cart' ], 10, 3 );
 		
 		// Display net prices in mini cart for B2B users
-		add_filter( 'woocommerce_widget_cart_item_quantity', [ $this, 'display_net_price_in_minicart' ], 10, 3 );
-		
-		// Hide tax rows in cart/checkout for B2B users
-		add_filter( 'woocommerce_cart_totals_order_total_html', [ $this, 'show_only_total_in_cart' ], 10, 1 );
-		add_action( 'woocommerce_cart_totals_before_order_total', [ $this, 'hide_tax_rows_in_cart' ] );
-		add_action( 'woocommerce_review_order_before_order_total', [ $this, 'hide_tax_rows_in_checkout' ] );
+		add_filter( 'woocommerce_widget_cart_item_quantity', [ $this, 'display_net_price_in_minicart' ], 10, 3 );	
 	}
 
 	/**
@@ -224,48 +219,5 @@ class Price_Display {
 		       wp_strip_all_tags( wc_price( $prices['net'] ) ) . ' <small>' . __( 'net', 'justb2b-larose' ) . '</small><br>' .
 		       '<span class="justb2b-minicart-gross">' . wp_strip_all_tags( wc_price( $prices['gross'] ) ) . ' <small>' . __( 'gross', 'justb2b-larose' ) . '</small></span>' .
 		       '</span>';
-	}
-
-	/**
-	 * Show only final total for B2B users
-	 */
-	public function show_only_total_in_cart( $value ) {
-		if ( ! Helper::is_b2b_accepted_user() ) {
-			return $value;
-		}
-
-		// Return the total including tax (gross total)
-		return wc_price( WC()->cart->get_total( 'edit' ) );
-	}
-
-	/**
-	 * Output CSS to hide specific elements
-	 *
-	 * @param string $selector CSS selector to hide
-	 */
-	private function output_hide_css( $selector ) {
-		echo '<style>' . esc_html( $selector ) . ' { display: none !important; }</style>';
-	}
-
-	/**
-	 * Hide tax rows in cart for B2B users
-	 */
-	public function hide_tax_rows_in_cart() {
-		if ( ! Helper::is_b2b_accepted_user() ) {
-			return;
-		}
-
-		$this->output_hide_css( '.cart_totals .tax-total, .cart_totals .shipping' );
-	}
-
-	/**
-	 * Hide tax rows in checkout for B2B users
-	 */
-	public function hide_tax_rows_in_checkout() {
-		if ( ! Helper::is_b2b_accepted_user() ) {
-			return;
-		}
-
-		$this->output_hide_css( '.woocommerce-checkout-review-order-table .tax-total, .woocommerce-checkout-review-order-table .shipping' );
 	}
 }
