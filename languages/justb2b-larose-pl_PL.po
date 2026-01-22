@@ -109,8 +109,8 @@ msgstr "Nowe żądanie konta B2B zostało złożone przez %s (%s).\n\nMożesz pr
 msgid "Your B2B Account Has Been Approved"
 msgstr "Twoje Konto B2B Zostało Zatwierdzone"
 
-msgid "Congratulations %s!\n\nYour B2B account request has been approved. You now have access to B2B pricing and features.\n\nYour login details:\nUsername: %s\nIf you need to reset your password, please visit: %s\n\nThank you for your business!"
-msgstr "Gratulacje %s!\n\nTwoje żądanie konta B2B zostało zatwierdzone. Masz teraz dostęp do cen i funkcji B2B.\n\nTwoje dane logowania:\nNazwa użytkownika: %s\nJeśli potrzebujesz zresetować hasło, odwiedź: %s\n\nDziękujemy za współpracę!"
+msgid "Congratulations %s!\n\nYour B2B account request has been approved. You now have access to B2B pricing and features.\n\nYour login details:\nUsername: %s\nLogin here: %s\nIf you need to reset your password, please visit: %s\n\nThank you for your business!"
+msgstr "Gratulacje %s!\n\nTwoje żądanie konta B2B zostało zatwierdzone. Masz teraz dostęp do cen i funkcji B2B.\n\nTwoje dane logowania:\nNazwa użytkownika: %s\nZaloguj się tutaj: %s\nJeśli potrzebujesz zresetować hasło, odwiedź: %s\n\nDziękujemy za współpracę!"
 
 # Main Plugin File
 msgid "JustB2B WooCommerce Extension requires WooCommerce to be installed and active."
