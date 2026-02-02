@@ -259,6 +259,8 @@ class Cart_Handler
 
         // Determine which tier sample product to add based on cart total NETTO
         $sample_info = null;
+        $target_product_id = null;
+        
         if ($cart_subtotal_netto >= 5000) {
             $sample_info = ['tier' => '5000 zł', 'count' => 20];
         } elseif ($cart_subtotal_netto >= 3000) {
@@ -269,18 +271,28 @@ class Cart_Handler
             $sample_info = ['tier' => '1000 zł', 'count' => 5];
         }
 
-        // Remove all sample products from cart first
+        // Get the target product ID if we need one
+        if ($sample_info !== null) {
+            $target_product_id = $this->get_or_create_sample_product($sample_info['tier'], $sample_info['count']);
+        }
+
+        // Check what sample products are currently in cart
+        $current_sample_in_cart = null;
         foreach ($cart->get_cart() as $cart_key => $cart_item) {
             if (in_array($cart_item['product_id'], $all_sample_ids)) {
-                $cart->remove_cart_item($cart_key);
+                $current_sample_in_cart = $cart_item['product_id'];
+                
+                // If it's not the correct one, remove it
+                if ($cart_item['product_id'] != $target_product_id) {
+                    $cart->remove_cart_item($cart_key);
+                }
             }
         }
 
-        // Add appropriate sample product if threshold is met
-        if ($sample_info !== null) {
-            $product_id = $this->get_or_create_sample_product($sample_info['tier'], $sample_info['count']);
+        // Add the appropriate sample product if needed and not already in cart
+        if ($target_product_id !== null && $current_sample_in_cart != $target_product_id) {
             // Add with quantity 1 always
-            $cart->add_to_cart($product_id, 1, 0, [], []);
+            $cart->add_to_cart($target_product_id, 1, 0, [], []);
         }
     }
 
