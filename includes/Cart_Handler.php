@@ -262,13 +262,13 @@ class Cart_Handler
         $target_product_id = null;
         
         if ($cart_subtotal_netto >= 5000) {
-            $sample_info = ['tier' => '5000 zł', 'count' => 20];
+            $sample_info = ['tier' => '5000 zł netto', 'count' => 20];
         } elseif ($cart_subtotal_netto >= 3000) {
-            $sample_info = ['tier' => '3000 zł', 'count' => 15];
+            $sample_info = ['tier' => '3000 zł netto', 'count' => 15];
         } elseif ($cart_subtotal_netto >= 2000) {
-            $sample_info = ['tier' => '2000 zł', 'count' => 10];
+            $sample_info = ['tier' => '2000 zł netto', 'count' => 10];
         } elseif ($cart_subtotal_netto >= 1000) {
-            $sample_info = ['tier' => '1000 zł', 'count' => 5];
+            $sample_info = ['tier' => '1000 zł netto', 'count' => 5];
         }
 
         // Get the target product ID if we need one
