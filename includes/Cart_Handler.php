@@ -246,6 +246,11 @@ class Cart_Handler
             return;
         }
 
+        // Check if we've already processed samples in this request
+        if (WC()->session && WC()->session->get('b2b_samples_processed')) {
+            return;
+        }
+
         $all_sample_ids = $this->get_all_sample_product_ids();
 
         // Calculate cart subtotal NETTO (excluding sample products)
@@ -278,21 +283,44 @@ class Cart_Handler
 
         // Check what sample products are currently in cart
         $current_sample_in_cart = null;
+        $has_correct_sample = false;
+        
         foreach ($cart->get_cart() as $cart_key => $cart_item) {
             if (in_array($cart_item['product_id'], $all_sample_ids)) {
-                $current_sample_in_cart = $cart_item['product_id'];
-                
-                // If it's not the correct one, remove it
-                if ($cart_item['product_id'] != $target_product_id) {
+                if ($cart_item['product_id'] == $target_product_id) {
+                    // Correct sample is already in cart
+                    $has_correct_sample = true;
+                } else {
+                    // Wrong sample, remove it
                     $cart->remove_cart_item($cart_key);
                 }
             }
         }
 
         // Add the appropriate sample product if needed and not already in cart
-        if ($target_product_id !== null && $current_sample_in_cart != $target_product_id) {
+        if ($target_product_id !== null && !$has_correct_sample) {
+            // Mark that we're processing to prevent re-entry
+            if (WC()->session) {
+                WC()->session->set('b2b_samples_processed', true);
+            }
+            
             // Add with quantity 1 always
             $cart->add_to_cart($target_product_id, 1, 0, [], []);
+            
+            // Clear the flag after a short delay (will be cleared on next page load anyway)
+            if (WC()->session) {
+                // We'll clear this at the end of the request
+                add_action('shutdown', function() {
+                    if (WC()->session) {
+                        WC()->session->set('b2b_samples_processed', false);
+                    }
+                });
+            }
+        } elseif ($target_product_id === null) {
+            // Below threshold, make sure session flag is clear
+            if (WC()->session) {
+                WC()->session->set('b2b_samples_processed', false);
+            }
         }
     }
 
