@@ -205,7 +205,7 @@ class Cart_Handler
         $product->set_catalog_visibility('hidden');
         $product->set_regular_price(0.01);
         $product->set_virtual(true);
-        $product->set_sold_individually(true);
+        $product->set_sold_individually(false);
         $product_id = $product->save();
 
         // Add meta to identify this as the sample product
@@ -246,11 +246,6 @@ class Cart_Handler
             return;
         }
 
-        // Check if we've already processed samples in this request
-        if (WC()->session && WC()->session->get('b2b_samples_processed')) {
-            return;
-        }
-
         $all_sample_ids = $this->get_all_sample_product_ids();
 
         // Calculate cart subtotal NETTO (excluding sample products)
@@ -281,45 +276,50 @@ class Cart_Handler
             $target_product_id = $this->get_or_create_sample_product($sample_info['tier'], $sample_info['count']);
         }
 
-        // Check what sample products are currently in cart
-        $current_sample_in_cart = null;
+        // Check what sample products are currently in cart and remove wrong ones
         $has_correct_sample = false;
+        $cart_items_to_remove = [];
         
         foreach ($cart->get_cart() as $cart_key => $cart_item) {
             if (in_array($cart_item['product_id'], $all_sample_ids)) {
                 if ($cart_item['product_id'] == $target_product_id) {
-                    // Correct sample is already in cart
+                    // Correct sample is already in cart, ensure quantity is 1
                     $has_correct_sample = true;
+                    if ($cart_item['quantity'] != 1) {
+                        $cart->set_quantity($cart_key, 1, true);
+                    }
                 } else {
-                    // Wrong sample, remove it
-                    $cart->remove_cart_item($cart_key);
+                    // Wrong sample, mark for removal
+                    $cart_items_to_remove[] = $cart_key;
                 }
             }
+        }
+        
+        // Remove wrong samples
+        foreach ($cart_items_to_remove as $cart_key) {
+            $cart->remove_cart_item($cart_key);
         }
 
         // Add the appropriate sample product if needed and not already in cart
         if ($target_product_id !== null && !$has_correct_sample) {
-            // Mark that we're processing to prevent re-entry
-            if (WC()->session) {
-                WC()->session->set('b2b_samples_processed', true);
-            }
+            // Generate a cart item key
+            $cart_item_key = $cart->generate_cart_id($target_product_id);
             
-            // Add with quantity 1 always
-            $cart->add_to_cart($target_product_id, 1, 0, [], []);
-            
-            // Clear the flag after a short delay (will be cleared on next page load anyway)
-            if (WC()->session) {
-                // We'll clear this at the end of the request
-                add_action('shutdown', function() {
-                    if (WC()->session) {
-                        WC()->session->set('b2b_samples_processed', false);
-                    }
-                });
-            }
-        } elseif ($target_product_id === null) {
-            // Below threshold, make sure session flag is clear
-            if (WC()->session) {
-                WC()->session->set('b2b_samples_processed', false);
+            // Check if this exact item already exists in cart
+            if (!isset($cart->cart_contents[$cart_item_key])) {
+                // Manually add to cart contents to avoid WooCommerce validation
+                $product_data = wc_get_product($target_product_id);
+                if ($product_data) {
+                    $cart->cart_contents[$cart_item_key] = array(
+                        'key' => $cart_item_key,
+                        'product_id' => $target_product_id,
+                        'variation_id' => 0,
+                        'variation' => array(),
+                        'quantity' => 1,
+                        'data' => $product_data,
+                        'data_hash' => wc_get_cart_item_data_hash($product_data),
+                    );
+                }
             }
         }
     }
