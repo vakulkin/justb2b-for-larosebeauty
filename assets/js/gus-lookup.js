@@ -125,32 +125,18 @@
         // Map GUS data to form fields
         const fieldMapping = {
             'justb2b_company': data.company_name,
-            'uwp-justb2b_company': data.company_name,
-            'billing_company': data.company_name,
             
             'justb2b_firstname': data.first_name,
-            'uwp-justb2b_firstname': data.first_name,
-            'billing_first_name': data.first_name,
             
             'justb2b_lastname': data.last_name,
-            'uwp-justb2b_lastname': data.last_name,
-            'billing_last_name': data.last_name,
             
             'justb2b_city': data.city,
-            'uwp-justb2b_city': data.city,
-            'billing_city': data.city,
             
             'justb2b_postcode': data.postcode,
-            'uwp-justb2b_postcode': data.postcode,
-            'billing_postcode': data.postcode,
             
             'justb2b_phone': data.phone,
-            'uwp-justb2b_phone': data.phone,
-            'billing_phone': data.phone,
             
             'justb2b_email': data.email,
-            'uwp-justb2b_email': data.email,
-            'billing_email': data.email,
         };
 
         // Construct address from street, building number, and apartment
@@ -164,8 +150,6 @@
 
         if (address) {
             fieldMapping['justb2b_address_1'] = address;
-            fieldMapping['uwp-justb2b_address_1'] = address;
-            fieldMapping['billing_address_1'] = address;
         }
 
         // Fill the fields
@@ -176,13 +160,6 @@
             // Try different field selectors
             const selectors = [
                 `input[name="${fieldName}"]`,
-                `input[id="${fieldName}"]`,
-                `input[name="uwp-${fieldName}"]`,
-                `input[id="uwp-${fieldName}"]`,
-                `select[name="${fieldName}"]`,
-                `select[id="${fieldName}"]`,
-                `textarea[name="${fieldName}"]`,
-                `textarea[id="${fieldName}"]`,
             ];
 
             selectors.forEach(function (selector) {
@@ -191,22 +168,6 @@
                     $field.val(value).trigger('change');
                 }
             });
-        });
-
-        // Set Poland as country if field exists
-        const countrySelectors = [
-            'select[name="justb2b_country"]',
-            'select[name="uwp-justb2b_country"]',
-            'select[name="billing_country"]',
-            'select[id="justb2b_country"]',
-            'select[id="billing_country"]',
-        ];
-
-        countrySelectors.forEach(function (selector) {
-            const $field = $(selector);
-            if ($field.length) {
-                $field.val('PL').trigger('change');
-            }
         });
     }
 
@@ -217,10 +178,6 @@
         // Find NIP input fields
         const nipSelectors = [
             'input[name="justb2b_nip"]',
-            'input[name="uwp-justb2b_nip"]',
-            'input[id="justb2b_nip"]',
-            'input[id="uwp-justb2b_nip"]',
-            'input[name="billing_nip"]',
         ];
 
         // Collect unique fields to avoid attaching multiple listeners
