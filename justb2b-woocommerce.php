@@ -139,21 +139,3 @@ final class JustB2B_WooCommerce
 
 // Initialize the plugin
 JustB2B_WooCommerce::instance();
-
-
-/**
- * Disable NIP field and invoice checkbox in Fakturownia checkout
- */
-add_action( 'init', function() {
-    // Remove NIP field
-    remove_action( 'woocommerce_checkout_fields', [ 
-        WPDesk\WooCommerceFakturownia\Field\RequiredVatNumber::class, 
-        'add_checkout_fields' 
-    ] );
-    
-    // Remove invoice checkbox field
-    remove_action( 'woocommerce_checkout_fields', [ 
-        FakturowniaVendor\WPDesk\Invoices\Field\InvoiceAsk::class, 
-        'add_checkout_fields' 
-    ] );
-}, 20 );
