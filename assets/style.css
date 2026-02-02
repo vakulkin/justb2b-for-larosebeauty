@@ -133,6 +133,7 @@
     padding: 0 !important;
 }
 
+.wcpt-show-all-option.wcpt-option label span,
 .wcpt-navigation.wcpt-header .wcpt-options-row .wcpt-option label>span {
     padding: 4px 16px !important;
     background-color: #ffffff !important;
@@ -141,6 +142,7 @@
     color: #6a5a44 !important;
 } 
 
+.wcpt-show-all-option.wcpt-option.wcpt-active label span,
 .wcpt-navigation.wcpt-header .wcpt-options-row .wcpt-option .wcpt-active>span {
     background-color: #9E8867 !important;
     color: #ffffff !important;

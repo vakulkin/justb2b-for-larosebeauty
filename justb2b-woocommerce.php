@@ -90,6 +90,7 @@ final class JustB2B_WooCommerce
         \JustB2B\Menu_Handler::instance();
         \JustB2B\WCProductTableLitePro::instance();
         \JustB2B\B2B_Button_Shortcode::instance();
+        \JustB2B\GUS_API_Handler::instance();
     }
 
     public function enqueue_styles()
