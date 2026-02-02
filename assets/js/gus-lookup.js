@@ -51,26 +51,48 @@
             let city = '';
             let postcode = '';
             
-            if (subject.workingAddress) {
-                street = subject.workingAddress || '';
-            }
+            // Try to parse workingAddress (format: "STREET NUMBER, POSTCODE CITY")
+            let addressToParse = subject.workingAddress || subject.residenceAddress || '';
             
-            if (subject.residenceAddress) {
-                const addressParts = subject.residenceAddress.split(',').map(s => s.trim());
+            if (addressToParse) {
+                // Split by comma first
+                const parts = addressToParse.split(',').map(s => s.trim());
                 
-                // Try to parse address (format varies, best effort)
-                addressParts.forEach(part => {
-                    if (/^\d{2}-\d{3}$/.test(part)) {
-                        // This is a postcode
-                        postcode = part;
-                    } else if (/^\d+/.test(part) && !street) {
-                        // Starts with number, might be street with number
-                        street = part;
-                    } else if (!city && !postcode) {
-                        // Likely a city name
-                        city = part;
+                if (parts.length >= 2) {
+                    // First part is street with building number
+                    street = parts[0];
+                    
+                    // Second part contains postcode and city
+                    const postcodeAndCity = parts[1].trim();
+                    
+                    // Extract postcode (XX-XXX format)
+                    const postcodeMatch = postcodeAndCity.match(/(\d{2}-\d{3})/);
+                    if (postcodeMatch) {
+                        postcode = postcodeMatch[1];
+                        // Everything after postcode is city
+                        city = postcodeAndCity.replace(postcode, '').trim();
+                    } else {
+                        // No postcode found, entire second part might be city
+                        city = postcodeAndCity;
                     }
-                });
+                } else {
+                    // No comma, try to parse differently
+                    // Look for postcode pattern
+                    const postcodeMatch = addressToParse.match(/(\d{2}-\d{3})/);
+                    if (postcodeMatch) {
+                        postcode = postcodeMatch[1];
+                        
+                        // Split by postcode
+                        const beforePostcode = addressToParse.substring(0, postcodeMatch.index).trim();
+                        const afterPostcode = addressToParse.substring(postcodeMatch.index + postcode.length).trim();
+                        
+                        street = beforePostcode;
+                        city = afterPostcode;
+                    } else {
+                        // Fallback: entire address as street
+                        street = addressToParse;
+                    }
+                }
             }
             
             return {
@@ -165,7 +187,7 @@
 
             selectors.forEach(function (selector) {
                 const $field = $(selector);
-                if ($field.length && !$field.val()) {
+                if ($field.length) {
                     $field.val(value).trigger('change');
                 }
             });
@@ -182,7 +204,7 @@
 
         countrySelectors.forEach(function (selector) {
             const $field = $(selector);
-            if ($field.length && !$field.val()) {
+            if ($field.length) {
                 $field.val('PL').trigger('change');
             }
         });
@@ -201,19 +223,37 @@
             'input[name="billing_nip"]',
         ];
 
+        // Collect unique fields to avoid attaching multiple listeners
+        const processedFields = new Set();
+
         nipSelectors.forEach(function (selector) {
-            const $nipField = $(selector);
+            const $nipFields = $(selector);
             
-            if ($nipField.length) {
+            $nipFields.each(function() {
+                const $nipField = $(this);
+                const fieldId = $nipField.attr('id') || $nipField.attr('name') || '';
+                
+                // Skip if already processed
+                if (processedFields.has(fieldId) || $nipField.data('gus-lookup-initialized')) {
+                    return;
+                }
+                
+                // Mark as processed
+                processedFields.add(fieldId);
+                $nipField.data('gus-lookup-initialized', true);
+                
                 // Add loading indicator container if not exists
                 if (!$nipField.next('.gus-lookup-status').length) {
                     $nipField.after('<span class="gus-lookup-status"></span>');
                 }
 
                 const $status = $nipField.next('.gus-lookup-status');
+                
+                // Store last fetched NIP to avoid duplicate requests
+                let lastFetchedNIP = '';
 
                 // Add event listener for NIP input
-                $nipField.on('input blur', function () {
+                $nipField.on('input.guslookup blur.guslookup', function () {
                     const nip = $(this).val().replace(/[\s-]/g, '');
 
                     // Clear status
@@ -221,6 +261,14 @@
 
                     // Only proceed if we have 10 digits
                     if (nip.length === 10 && /^\d{10}$/.test(nip)) {
+                        // Skip if this NIP was already fetched
+                        if (nip === lastFetchedNIP) {
+                            return;
+                        }
+                        
+                        // Update last fetched NIP
+                        lastFetchedNIP = nip;
+                        
                         // Show loading indicator
                         $status.html('<span style="color: #666;">🔍 Wyszukiwanie w bazie MF...</span>');
 
@@ -253,7 +301,7 @@
                         });
                     }
                 });
-            }
+            });
         });
     }
 
