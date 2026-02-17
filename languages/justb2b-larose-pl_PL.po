@@ -62,8 +62,6 @@ msgstr "b2b:"
 msgid "net"
 msgstr "netto"
 
-msgid "rrp:"
-msgstr "rrp:"
 
 msgid "gross"
 msgstr "brutto"
@@ -75,7 +73,7 @@ msgid "B2B Price:"
 msgstr "Cena B2B:"
 
 msgid "RRP:"
-msgstr "RRP:"
+msgstr "SCD:"
 
 msgid "B2B Price (Net):"
 msgstr "Cena B2B (Netto):"

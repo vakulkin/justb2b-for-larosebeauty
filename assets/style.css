@@ -227,3 +227,9 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     white-space: normal !important;
     border: none !important;
 }
+
+.product-price,
+.product-subtotal,
+.wd-checkout-prod-total.product-total {
+  white-space: nowrap;
+}
