@@ -91,6 +91,8 @@ final class JustB2B_WooCommerce
         \JustB2B\WCProductTableLitePro::instance();
         \JustB2B\B2B_Button_Shortcode::instance();
         \JustB2B\GUS_API_Handler::instance();
+        \JustB2B\ADP_Disabler::instance();
+        \JustB2B\Cart_Popup_Cross_Sell::instance();
     }
 
     public function enqueue_styles()

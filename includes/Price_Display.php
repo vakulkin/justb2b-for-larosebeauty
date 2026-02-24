@@ -19,7 +19,7 @@ class Price_Display
 
     private function __construct()
     {
-        add_action('woocommerce_get_price_html', [ $this, 'hide_price_for_b2b_users' ], 10, 2);
+        add_action('woocommerce_get_price_html', [ $this, 'price_for_b2b_users' ], 10, 2);
         add_shortcode('justb2b_display_price', [ $this, 'shortcode_b2b_price' ]);
 
         // Display net prices in cart/checkout for B2B users
@@ -31,9 +31,9 @@ class Price_Display
     }
 
     /**
-     * Hide price for B2B users
+     * Display B2B price for B2B users
      */
-    public function hide_price_for_b2b_users($price_html, $product)
+    public function price_for_b2b_users($price_html, $product)
     {
         if (is_admin()) {
             return $price_html;

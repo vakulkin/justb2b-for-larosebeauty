@@ -21,16 +21,18 @@ class Cart_Handler
 
     private function __construct()
     {
-        add_action('woocommerce_before_calculate_totals', [ $this, 'override_cart_price' ], 10);
+        add_action('woocommerce_before_calculate_totals', [ $this, 'override_cart_price' ], 200);
         add_filter('woocommerce_package_rates', [ $this, 'apply_free_shipping_for_b2b' ], 10, 2);
         add_filter('woocommerce_available_payment_gateways', [ $this, 'filter_payment_gateways' ]);
         add_filter('woocommerce_cart_needs_shipping', [ $this, 'disable_shipping_calculation' ]);
         add_action('woocommerce_checkout_update_order_review', [ $this, 'reset_shipping_cache' ]);
         add_filter('option_xts-woodmart-options', [ $this, 'override_woodmart_options_for_b2b' ], 10, 1);
         add_filter('woocommerce_coupons_enabled', [ $this, 'disable_coupons_for_b2b' ]);
-        add_action('woocommerce_before_calculate_totals', [ $this, 'add_sample_product_for_b2b' ], 20);
+        add_action('woocommerce_before_calculate_totals', [ $this, 'add_sample_product_for_b2b' ], 300);
         add_filter('woocommerce_cart_item_remove_link', [ $this, 'prevent_sample_removal' ], 10, 2);
         add_filter('woocommerce_cart_item_quantity', [ $this, 'prevent_sample_quantity_change' ], 10, 3);
+        add_filter('woocommerce_add_to_cart_validation', [ $this, 'block_manual_sample_addition' ], 10, 2);
+        add_filter('woocommerce_cart_item_name', [ $this, 'modify_sample_cart_item_name' ], 10, 3);
     }
 
     /**
@@ -180,22 +182,24 @@ class Cart_Handler
     }
 
     /**
-     * Get or create the sample product for specific tier
+     * Get or create the single sample product "Mix próbek"
      */
-    private function get_or_create_sample_product($tier, $sample_count)
+    private function get_or_create_sample_product()
     {
-        $product_name = "Mix próbek, {$sample_count} próbek - przy zamówieniu {$tier}";
-        
-        // Check if product already exists
+        $product_name = 'Mix próbek';
+
+        // Check if product already exists by meta flag
         $existing_products = get_posts([
             'post_type' => 'product',
-            'title' => $product_name,
+            'meta_key' => '_is_b2b_sample_product',
+            'meta_value' => 'yes',
             'post_status' => 'any',
             'numberposts' => 1,
+            'fields' => 'ids',
         ]);
 
         if (!empty($existing_products)) {
-            return $existing_products[0]->ID;
+            return $existing_products[0];
         }
 
         // Create new product
@@ -210,25 +214,8 @@ class Cart_Handler
 
         // Add meta to identify this as the sample product
         update_post_meta($product_id, '_is_b2b_sample_product', 'yes');
-        update_post_meta($product_id, '_b2b_sample_tier', $tier);
 
         return $product_id;
-    }
-
-    /**
-     * Get all sample product IDs
-     */
-    private function get_all_sample_product_ids()
-    {
-        $sample_products = get_posts([
-            'post_type' => 'product',
-            'meta_key' => '_is_b2b_sample_product',
-            'meta_value' => 'yes',
-            'fields' => 'ids',
-            'numberposts' => -1,
-        ]);
-        
-        return $sample_products;
     }
 
     /**
@@ -246,21 +233,20 @@ class Cart_Handler
             return;
         }
 
-        $all_sample_ids = $this->get_all_sample_product_ids();
+        $sample_product_id = $this->get_or_create_sample_product();
 
-        // Calculate cart subtotal NETTO (excluding sample products)
+        // Calculate cart subtotal NETTO (excluding sample product)
         $cart_subtotal_netto = 0;
         foreach ($cart->get_cart() as $cart_item) {
-            if (!in_array($cart_item['product_id'], $all_sample_ids)) {
+            if ($cart_item['product_id'] != $sample_product_id) {
                 $cart_subtotal_netto += $cart_item['line_subtotal']; // NETTO only
             }
         }
         $cart_subtotal_netto = round($cart_subtotal_netto, 2);
 
-        // Determine which tier sample product to add based on cart total NETTO
+        // Determine tier based on cart total NETTO
         $sample_info = null;
-        $target_product_id = null;
-        
+
         if ($cart_subtotal_netto >= 5000) {
             $sample_info = ['tier' => '5000 zł netto', 'count' => 20];
         } elseif ($cart_subtotal_netto >= 3000) {
@@ -271,53 +257,51 @@ class Cart_Handler
             $sample_info = ['tier' => '1000 zł netto', 'count' => 5];
         }
 
-        // Get the target product ID if we need one
-        if ($sample_info !== null) {
-            $target_product_id = $this->get_or_create_sample_product($sample_info['tier'], $sample_info['count']);
-        }
-
-        // Check what sample products are currently in cart and remove wrong ones
-        $has_correct_sample = false;
-        $cart_items_to_remove = [];
-        
+        // Find existing sample in cart
+        $sample_cart_key = null;
         foreach ($cart->get_cart() as $cart_key => $cart_item) {
-            if (in_array($cart_item['product_id'], $all_sample_ids)) {
-                if ($cart_item['product_id'] == $target_product_id) {
-                    // Correct sample is already in cart, ensure quantity is 1
-                    $has_correct_sample = true;
-                    if ($cart_item['quantity'] != 1) {
-                        $cart->set_quantity($cart_key, 1, true);
-                    }
-                } else {
-                    // Wrong sample, mark for removal
-                    $cart_items_to_remove[] = $cart_key;
-                }
+            if ($cart_item['product_id'] == $sample_product_id) {
+                $sample_cart_key = $cart_key;
+                break;
             }
         }
-        
-        // Remove wrong samples
-        foreach ($cart_items_to_remove as $cart_key) {
-            $cart->remove_cart_item($cart_key);
+
+        if ($sample_info === null) {
+            // No tier reached — remove sample if present
+            if ($sample_cart_key !== null) {
+                $cart->remove_cart_item($sample_cart_key);
+            }
+            return;
         }
 
-        // Add the appropriate sample product if needed and not already in cart
-        if ($target_product_id !== null && !$has_correct_sample) {
-            // Generate a cart item key
-            $cart_item_key = $cart->generate_cart_id($target_product_id);
-            
-            // Check if this exact item already exists in cart
+        if ($sample_cart_key !== null) {
+            // Sample already in cart — update tier data and ensure quantity is 1
+            $cart->cart_contents[$sample_cart_key]['_b2b_sample_tier'] = $sample_info['tier'];
+            $cart->cart_contents[$sample_cart_key]['_b2b_sample_count'] = $sample_info['count'];
+            if ($cart->cart_contents[$sample_cart_key]['quantity'] != 1) {
+                $cart->set_quantity($sample_cart_key, 1, true);
+            }
+        } else {
+            // Add sample product to cart with tier data
+            $cart_item_data = [
+                '_b2b_sample_tier' => $sample_info['tier'],
+                '_b2b_sample_count' => $sample_info['count'],
+            ];
+            $cart_item_key = $cart->generate_cart_id($sample_product_id, 0, [], $cart_item_data);
+
             if (!isset($cart->cart_contents[$cart_item_key])) {
-                // Manually add to cart contents to avoid WooCommerce validation
-                $product_data = wc_get_product($target_product_id);
+                $product_data = wc_get_product($sample_product_id);
                 if ($product_data) {
                     $cart->cart_contents[$cart_item_key] = array(
                         'key' => $cart_item_key,
-                        'product_id' => $target_product_id,
+                        'product_id' => $sample_product_id,
                         'variation_id' => 0,
                         'variation' => array(),
                         'quantity' => 1,
                         'data' => $product_data,
                         'data_hash' => wc_get_cart_item_data_hash($product_data),
+                        '_b2b_sample_tier' => $sample_info['tier'],
+                        '_b2b_sample_count' => $sample_info['count'],
                     );
                 }
             }
@@ -336,12 +320,12 @@ class Cart_Handler
 
         $product_id = $cart_item['product_id'];
         $is_sample = get_post_meta($product_id, '_is_b2b_sample_product', true);
-        
+
         if ($is_sample === 'yes' && Helper::is_b2b_accepted_user()) {
             // Return empty string to hide remove link
             return '';
         }
-        
+
         return $link;
     }
 
@@ -352,12 +336,44 @@ class Cart_Handler
     {
         $product_id = $cart_item['product_id'];
         $is_sample = get_post_meta($product_id, '_is_b2b_sample_product', true);
-        
+
         if ($is_sample === 'yes' && Helper::is_b2b_accepted_user()) {
             // Return non-editable quantity display
             return '<span class="quantity">1</span>';
         }
-        
+
         return $product_quantity;
+    }
+
+    /**
+     * Block manual addition of the sample product to cart
+     */
+    public function block_manual_sample_addition($passed, $product_id)
+    {
+        $is_sample = get_post_meta($product_id, '_is_b2b_sample_product', true);
+
+        if ($is_sample === 'yes') {
+            wc_add_notice('Ten produkt nie może być dodany ręcznie do koszyka.', 'error');
+            return false;
+        }
+
+        return $passed;
+    }
+
+    /**
+     * Modify sample product name in cart to show tier info
+     */
+    public function modify_sample_cart_item_name($name, $cart_item, $cart_item_key)
+    {
+        $product_id = $cart_item['product_id'];
+        $is_sample = get_post_meta($product_id, '_is_b2b_sample_product', true);
+
+        if ($is_sample === 'yes' && !empty($cart_item['_b2b_sample_count']) && !empty($cart_item['_b2b_sample_tier'])) {
+            $count = $cart_item['_b2b_sample_count'];
+            $tier = $cart_item['_b2b_sample_tier'];
+            return "Mix próbek, {$count} próbek - przy zamówieniu {$tier}";
+        }
+
+        return $name;
     }
 }
