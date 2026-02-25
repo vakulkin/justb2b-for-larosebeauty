@@ -253,7 +253,7 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     color: inherit;
     background: #fff;
     border-radius: 10px;
-    padding: 12px 10px 14px;
+    padding: 6px 4px;
     border: 1px solid #f0f0f0;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
     cursor: pointer;
@@ -299,7 +299,7 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: #111827;
     line-height: 1.35;
@@ -313,64 +313,6 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
     color: #6b7280;
     max-width: 100%;
     word-wrap: break-word;
-}
-
-/* Widget/sidebar mode */
-.widget_shopping_cart_content .justb2b-popup-cross-sell {
-    padding-top: 16px;
-    border-top: 1px solid #eaeaea;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-products {
-    grid-template-columns: 1fr;
-    gap: 8px;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-item {
-    flex-direction: row;
-    text-align: left;
-    padding: 8px;
-    gap: 10px;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-item:hover {
-    transform: none;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-image {
-    width: 50px;
-    max-width: 50px;
-    flex-shrink: 0;
-    margin-bottom: 0;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-name {
-    font-size: 12px;
-    margin-bottom: 2px;
-}
-
-.widget_shopping_cart_content .justb2b-cross-sell-price {
-    font-size: 12px;
-}
-
-/* Responsive */
-@media (max-width: 680px) {
-
-    .justb2b-cross-sell-products {
-        gap: 8px;
-    }
-
-    .justb2b-cross-sell-image {
-        max-width: 90px;
-    }
-
-    .justb2b-cross-sell-name {
-        font-size: 12px;
-    }
-
-    .justb2b-cross-sell-price {
-        font-size: 12px;
-    }
 }
 
 .added-to-cart a.btn {
