@@ -6,23 +6,31 @@
      * JustB2B Cart Popup Cross-Sell
      *
      * Injects cross-sell products into Woodmart's "added to cart" popup
-     * using the fragment returned by PHP via woocommerce_add_to_cart_fragments.
+     * by making an AJAX call to get the cross-sell HTML.
      */
-    $(document.body).on('added_to_cart', function (e, fragments) {
-        if (!fragments || !fragments['.justb2b-popup-cross-sell']) {
-            return;
-        }
-
-        var crossSellHtml = fragments['.justb2b-popup-cross-sell'];
-
+    $(document.body).on('added_to_cart', function (e, data) {
         // --- Popup mode ---
         var injectIntoPopup = function () {
             var $popup = $('.wd-popup-added-cart .added-to-cart');
             if ($popup.length) {
                 // Remove any previous cross-sell block
                 $popup.find('.justb2b-popup-cross-sell').remove();
-                // Insert after the title (h3)
-                $popup.find('h3').after(crossSellHtml);
+
+                // Make AJAX call to get cross-sell HTML
+                $.ajax({
+                    url: woodmart_settings.ajaxurl || wc_add_to_cart_params.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'justb2b_get_cross_sell_html',
+                        nonce: justb2b_cross_sell ? justb2b_cross_sell.nonce : ''
+                    },
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            // Insert after the title (h3)
+                            $popup.find('h3').after(response.data);
+                        }
+                    }
+                });
             }
         };
 
@@ -36,7 +44,21 @@
             var $cart = $('.widget_shopping_cart_content');
             if ($cart.length) {
                 $cart.find('.justb2b-popup-cross-sell').remove();
-                $cart.prepend(crossSellHtml);
+
+                // Make AJAX call to get cross-sell HTML
+                $.ajax({
+                    url: woodmart_settings.ajaxurl || wc_add_to_cart_params.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'justb2b_get_cross_sell_html',
+                        nonce: justb2b_cross_sell ? justb2b_cross_sell.nonce : ''
+                    },
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            $cart.prepend(response.data);
+                        }
+                    }
+                });
             }
         }
     });

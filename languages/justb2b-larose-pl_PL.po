@@ -116,3 +116,8 @@ msgstr "Rozszerzenie JustB2B WooCommerce wymaga zainstalowanego i aktywnego WooC
 
 msgid "JustB2B WooCommerce Extension requires Advanced Custom Fields (ACF) to be installed and active."
 msgstr "Rozszerzenie JustB2B WooCommerce wymaga zainstalowanych i aktywnych Advanced Custom Fields (ACF)."
+
+msgid "You may also like"
+msgstr "Sprawdź co pokochali inni"
+msgid "Opłata za płatność przy odbiorze"
+msgstr "Opłata za płatność przy odbiorze"
