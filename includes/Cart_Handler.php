@@ -8,7 +8,7 @@ namespace JustB2B;
 class Cart_Handler {
 	private static $instance = null;
 
-	const COD_FEE = 17.07;
+	const COD_FEE = 21; // Gross (brutto) amount shown to customer
 
 
 
@@ -52,7 +52,11 @@ class Cart_Handler {
 		}
 
 		if ( $chosen_payment === 'cod' ) {
-			$cart->add_fee( __( 'Opłata za płatność przy odbiorze', 'justb2b-larose' ), self::COD_FEE, true );
+			// Back-calculate net so that net + VAT = COD_FEE (gross)
+			$tax_rates = \WC_Tax::get_rates();
+			$tax_rate  = ! empty( $tax_rates ) ? reset( $tax_rates )['rate'] : 0;
+			$fee_net   = $tax_rate > 0 ? round( self::COD_FEE / ( 1 + $tax_rate / 100 ), 4 ) : self::COD_FEE;
+			$cart->add_fee( __( 'Opłata za płatność przy odbiorze', 'justb2b-larose' ), $fee_net, true );
 		}
 	}
 
