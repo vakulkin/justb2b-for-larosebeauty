@@ -8,7 +8,7 @@ namespace JustB2B;
 class Cart_Handler {
 	private static $instance = null;
 
-	const COD_FEE = 21;
+	const COD_FEE = 17.07;
 
 
 
