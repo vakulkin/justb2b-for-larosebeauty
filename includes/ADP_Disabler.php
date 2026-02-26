@@ -31,48 +31,48 @@ class ADP_Disabler
         // Suppresses ALL ADP pricing rule calculations
         add_filter('adp_rules_suppression', [ $this, 'suppress_for_b2b' ]);
 
-        // ── Cart processing ──
-        // Disable cart reprocessing after calculate_totals
-        add_filter('adp_disable_process_after_calculate_totals', [ $this, 'suppress_for_b2b' ]);
+        // // ── Cart processing ──
+        // // Disable cart reprocessing after calculate_totals
+        // add_filter('adp_disable_process_after_calculate_totals', [ $this, 'suppress_for_b2b' ]);
 
-        // Skip initial cart processing on page load
-        add_filter('adp_dont_process_cart_on_page_load', [ $this, 'suppress_for_b2b' ]);
+        // // Skip initial cart processing on page load
+        // add_filter('adp_dont_process_cart_on_page_load', [ $this, 'suppress_for_b2b' ]);
 
-        // Disable checkout order review reprocessing
-        add_filter('wdp_checkout_update_order_review_process_enabled', [ $this, 'disable_for_b2b' ]);
+        // // Disable checkout order review reprocessing
+        // add_filter('wdp_checkout_update_order_review_process_enabled', [ $this, 'disable_for_b2b' ]);
 
-        // ── Strategy-level disabling (AJAX & REST API) ──
-        // Prevent ADP AJAX strategy from loading entirely
-        add_filter('adp_wp_admin_ajax_strategy_load', [ $this, 'disable_for_b2b' ]);
+        // // ── Strategy-level disabling (AJAX & REST API) ──
+        // // Prevent ADP AJAX strategy from loading entirely
+        // add_filter('adp_wp_admin_ajax_strategy_load', [ $this, 'disable_for_b2b' ]);
 
-        // Prevent ADP REST API strategy from loading entirely
-        add_filter('adp_wp_rest_api_strategy_load', [ $this, 'disable_for_b2b' ]);
+        // // Prevent ADP REST API strategy from loading entirely
+        // add_filter('adp_wp_rest_api_strategy_load', [ $this, 'disable_for_b2b' ]);
 
-        // Prevent ADP WP Cron strategy from loading
-        add_filter('adp_wp_cron_strategy_load', [ $this, 'disable_for_b2b' ]);
+        // // Prevent ADP WP Cron strategy from loading
+        // add_filter('adp_wp_cron_strategy_load', [ $this, 'disable_for_b2b' ]);
 
-        // ── Per-rule safety net ──
-        // Block every individual rule from being applied
-        add_filter('adp_is_apply_rule', [ $this, 'block_rule_for_b2b' ], 10, 4);
+        // // ── Per-rule safety net ──
+        // // Block every individual rule from being applied
+        // add_filter('adp_is_apply_rule', [ $this, 'block_rule_for_b2b' ], 10, 4);
 
-        // ── Price display performance optimization ──
-        // Prevents ADP from running calculateProduct() on every product display
-        // (woocommerce_get_price_html, _is_on_sale, _get_sale_price, _get_regular_price)
-        add_filter('adp_get_price_html_is_mod_needed', [ $this, 'disable_for_b2b' ], 10, 3);
+        // // ── Price display performance optimization ──
+        // // Prevents ADP from running calculateProduct() on every product display
+        // // (woocommerce_get_price_html, _is_on_sale, _get_sale_price, _get_regular_price)
+        // add_filter('adp_get_price_html_is_mod_needed', [ $this, 'disable_for_b2b' ], 10, 3);
 
-        // ── Restore WC Product Factory ──
-        // ADP replaces WC()->product_factory with PricingProductFactory.
-        // Restore the original factory for B2B users.
-        add_action('woocommerce_init', [ $this, 'restore_wc_product_factory' ], PHP_INT_MAX);
+        // // ── Restore WC Product Factory ──
+        // // ADP replaces WC()->product_factory with PricingProductFactory.
+        // // Restore the original factory for B2B users.
+        // add_action('woocommerce_init', [ $this, 'restore_wc_product_factory' ], PHP_INT_MAX);
 
-        // ── Prevent persistent rules from polluting sale product queries ──
-        // ADP modifies [sale_products] shortcode queries to include ADP-rule products.
-        add_filter('woocommerce_shortcode_products_query', [ $this, 'clean_sale_query_for_b2b' ], 5, 3);
+        // // ── Prevent persistent rules from polluting sale product queries ──
+        // // ADP modifies [sale_products] shortcode queries to include ADP-rule products.
+        // add_filter('woocommerce_shortcode_products_query', [ $this, 'clean_sale_query_for_b2b' ], 5, 3);
 
-        // ── ExternalHookSuppressor protection ──
-        // ADP can strip hooks from other pricing plugins (including ours).
-        // Remove ADP's suppressor before it fires (it runs at wp_loaded priority 10).
-        add_action('wp_loaded', [ $this, 'remove_adp_external_hook_suppressor' ], 1);
+        // // ── ExternalHookSuppressor protection ──
+        // // ADP can strip hooks from other pricing plugins (including ours).
+        // // Remove ADP's suppressor before it fires (it runs at wp_loaded priority 10).
+        // add_action('wp_loaded', [ $this, 'remove_adp_external_hook_suppressor' ], 1);
     }
 
     /**
