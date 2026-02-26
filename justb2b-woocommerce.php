@@ -57,7 +57,8 @@ final class JustB2B_WooCommerce
     private function init_hooks()
     {
         add_action('before_woocommerce_init', [$this, 'declare_hpos_compatibility']);
-        add_action('plugins_loaded', [$this, 'init']);
+        add_action('plugins_loaded', [$this, 'init_acf_fields'], 5);
+        add_action('plugins_loaded', [$this, 'init'], 20);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_styles']);
     }
 
@@ -65,6 +66,18 @@ final class JustB2B_WooCommerce
     {
         if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
             \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
+        }
+    }
+
+    /**
+     * Register ACF fields early — only needs ACF, not WooCommerce or UsersWP.
+     * This ensures field groups appear on product/user edit pages regardless
+     * of whether other dependencies are active.
+     */
+    public function init_acf_fields()
+    {
+        if (function_exists('acf_add_local_field_group')) {
+            \JustB2B\ACF_Fields::instance();
         }
     }
 
@@ -80,8 +93,7 @@ final class JustB2B_WooCommerce
         // Mark justb2b cache group as non-persistent (only for current page load)
         wp_cache_add_non_persistent_groups('justb2b');
 
-        // Initialize modules
-        \JustB2B\ACF_Fields::instance();
+        // Initialize modules (ACF_Fields already initialized in init_acf_fields)
         \JustB2B\Price_Display::instance();
         \JustB2B\Cart_Handler::instance();
         \JustB2B\Billing_Handler::instance();
@@ -114,23 +126,30 @@ final class JustB2B_WooCommerce
 
     private function check_dependencies()
     {
+        $missing = [];
+
         if (!class_exists('WooCommerce')) {
-            add_action('admin_notices', function () {
-                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires WooCommerce to be installed and active.', 'justb2b-larose') . '</p></div>';
-            });
-            return false;
+            $missing[] = 'WooCommerce';
         }
 
         if (!function_exists('acf_add_local_field_group')) {
-            add_action('admin_notices', function () {
-                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires Advanced Custom Fields (ACF) to be installed and active.', 'justb2b-larose') . '</p></div>';
-            });
-            return false;
+            $missing[] = 'Advanced Custom Fields (ACF)';
         }
 
         if (!function_exists('uwp_get_option')) {
-            add_action('admin_notices', function () {
-                echo '<div class="error"><p>' . __('JustB2B WooCommerce Extension requires UsersWP to be installed and active.', 'justb2b-larose') . '</p></div>';
+            $missing[] = 'UsersWP';
+        }
+
+        if (!empty($missing)) {
+            $missing_list = implode(', ', $missing);
+            error_log('[JustB2B] Missing dependencies: ' . $missing_list);
+            add_action('admin_notices', function () use ($missing_list) {
+                echo '<div class="error"><p>' .
+                    sprintf(
+                        __('JustB2B WooCommerce Extension requires the following plugins to be installed and active: %s', 'justb2b-larose'),
+                        '<strong>' . esc_html($missing_list) . '</strong>'
+                    ) .
+                    '</p></div>';
             });
             return false;
         }

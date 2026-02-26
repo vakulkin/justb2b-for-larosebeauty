@@ -53,7 +53,7 @@ class Registration_Handler {
 	 * Set B2B role to pending for new registrations
 	 */
 	public function set_pending_role( $user_id ) {
-		update_user_meta( $user_id, 'justb2b_role', 'b2b_pending' );
+		update_field( 'field_justb2b_role', 'b2b_pending', 'user_' . $user_id );
 	}
 
 	/**
