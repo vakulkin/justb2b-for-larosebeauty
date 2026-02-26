@@ -21,7 +21,7 @@ class ACF_Fields
     {
         add_action('acf/init', [ $this, 'register_product_fields' ]);
         add_action('acf/init', [ $this, 'register_user_fields' ]);
-        // add_filter( 'acf/prepare_field/name=justb2b_price', [ $this, 'hide_field_for_non_simple' ] );
+        add_filter('acf/prepare_field/name=justb2b_price', [ $this, 'hide_field_for_non_simple' ]);
     }
 
     /**
