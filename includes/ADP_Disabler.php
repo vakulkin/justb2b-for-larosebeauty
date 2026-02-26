@@ -29,7 +29,7 @@ class ADP_Disabler
     {
         // ── Core engine kill switch ──
         // Suppresses ALL ADP pricing rule calculations
-        add_filter('adp_rules_suppression', [ $this, 'suppress_for_b2b' ]);
+        // add_filter('adp_rules_suppression', [ $this, 'suppress_for_b2b' ]);
 
         // // ── Cart processing ──
         // // Disable cart reprocessing after calculate_totals
