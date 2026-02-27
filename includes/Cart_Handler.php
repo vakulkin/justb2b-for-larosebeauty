@@ -44,6 +44,11 @@ class Cart_Handler {
 			return;
 		}
 
+		// Only add fee for B2B users
+		if ( ! Helper::is_b2b_accepted_user() ) {
+			return;
+		}
+
 		// $_POST['payment_method'] is the most reliable source during checkout AJAX updates
 		if ( isset( $_POST['payment_method'] ) ) {
 			$chosen_payment = sanitize_text_field( wp_unslash( $_POST['payment_method'] ) );
@@ -192,7 +197,7 @@ class Cart_Handler {
 	}
 
 	/**
-	 * Filter payment gateways - remove BACS for non-B2B users and modify title for B2B users
+	 * Filter payment gateways - remove BACS for non-B2B users and modify title for B2B users, make COD available only for B2B users
 	 */
 	public function filter_payment_gateways( $available_gateways ) {
 		if ( isset( $available_gateways['bacs'] ) ) {
@@ -206,11 +211,16 @@ class Cart_Handler {
 		}
 
 		if ( isset( $available_gateways['cod'] ) ) {
-			$available_gateways['cod']->title = sprintf(
-				/* translators: %s: COD fee amount */
-				__( 'Płatność przy odbiorze (+%s zł)', 'justb2b-larose' ),
-				number_format( self::COD_FEE, 0, ',', '' )
-			);
+			if ( Helper::is_b2b_accepted_user() ) {
+				$available_gateways['cod']->title = sprintf(
+					/* translators: %s: COD fee amount */
+					__( 'Płatność przy odbiorze (+%s zł)', 'justb2b-larose' ),
+					number_format( self::COD_FEE, 0, ',', '' )
+				);
+			} else {
+				// Remove COD for non-B2B users
+				unset( $available_gateways['cod'] );
+			}
 		}
 
 		return $available_gateways;
