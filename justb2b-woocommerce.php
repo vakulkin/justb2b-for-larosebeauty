@@ -84,6 +84,7 @@ final class JustB2B_WooCommerce
     private function __construct()
     {
         add_action('before_woocommerce_init', [ $this, 'declare_hpos_compatibility' ]);
+        add_action('init', [ $this, 'load_textdomain' ], 0);
         add_action('plugins_loaded', [ $this, 'register_acf_fields' ], 5);
         add_action('plugins_loaded', [ $this, 'init' ], 20);
         add_action('wp_enqueue_scripts', [ $this, 'enqueue_styles' ]);
@@ -116,6 +117,29 @@ final class JustB2B_WooCommerce
     }
 
     /* ------------------------------------------------------------------
+     * Load translations
+     * ----------------------------------------------------------------*/
+
+    public function load_textdomain(): void
+    {
+        $locale = apply_filters('plugin_locale', determine_locale(), 'justb2b-larose');
+        $mofile = sprintf('%1$s-%2$s.mo', 'justb2b-larose', $locale);
+        
+        // Try custom languages directory first (for wp-content/languages/plugins/)
+        $mofile_global = WP_LANG_DIR . '/plugins/' . $mofile;
+        if (file_exists($mofile_global)) {
+            load_textdomain('justb2b-larose', $mofile_global);
+            return;
+        }
+        
+        // Fall back to plugin's languages directory
+        $mofile_local = JUSTB2B_PLUGIN_DIR . 'languages/' . $mofile;
+        if (file_exists($mofile_local)) {
+            load_textdomain('justb2b-larose', $mofile_local);
+        }
+    }
+
+    /* ------------------------------------------------------------------
      * Full initialisation — requires all dependencies
      * ----------------------------------------------------------------*/
 
@@ -128,7 +152,6 @@ final class JustB2B_WooCommerce
             return;
         }
 
-        load_plugin_textdomain('justb2b-larose', false, dirname(plugin_basename(__FILE__)) . '/languages/');
         wp_cache_add_non_persistent_groups('justb2b');
 
         foreach (self::MODULES as $module) {
