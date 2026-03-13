@@ -14,17 +14,38 @@ namespace JustB2B;
  * the primary key. This avoids the expensive LEFT JOIN + OR + NOT EXISTS
  * meta_query pattern that was causing slow page loads.
  *
- * Covered surfaces:
- *  – WooCommerce shop / archive / category / tag queries
- *  – WordPress search
- *  – WooCommerce [products] shortcode
- *  – WooCommerce product widgets
- *  – wc_get_products() / WC_Product_Query
- *  – WooCommerce REST API (V2 / V3)
- *  – Related products, up-sells, cross-sells
- *  – WC Product Table Lite plugin
- *  – Direct URL access (→ 404)
- *  – Any other WP_Query for the `product` post type
+ * Comprehensive protection layers:
+ *
+ * ┌─ QUERY LAYER ────────────────────────────────────────────────────────┐
+ * │ • WooCommerce shop / archive / category / tag queries               │
+ * │ • WordPress search (including AJAX search)                           │
+ * │ • WooCommerce [products] shortcode                                   │
+ * │ • WooCommerce product widgets                                        │
+ * │ • wc_get_products() / WC_Product_Query                               │
+ * │ • WooCommerce REST API (V2 / V3)                                     │
+ * │ • Related products, up-sells, cross-sells                            │
+ * │ • WC Product Table Lite plugin (search, filters, and queries)       │
+ * └──────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ CART & CHECKOUT LAYER ──────────────────────────────────────────────┐
+ * │ • Add to cart validation (blocks manual addition)                    │
+ * │ • Purchasable filter (makes products non-purchasable)                │
+ * │ • Cart validation on checkout (removes B2B items from cart)          │
+ * │ • Cart session filter (removes B2B items when loading from session)  │
+ * └──────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ DISPLAY LAYER ──────────────────────────────────────────────────────┐
+ * │ • Price HTML filter (hides price for non-purchasable products)       │
+ * │ • Direct URL access (returns 404 for B2B-only product pages)         │
+ * └──────────────────────────────────────────────────────────────────────┘
+ *
+ * Coverage includes:
+ *  ✓ Any WP_Query for the `product` post type
+ *  ✓ WooCommerce native shortcodes and widgets
+ *  ✓ Third-party plugins using WooCommerce APIs
+ *  ✓ Direct cart manipulation (AJAX, POST requests)
+ *  ✓ Session restoration and cart persistence
+ *  ✓ Direct product page access
  */
 class Product_Visibility {
 
@@ -67,6 +88,16 @@ class Product_Visibility {
 
 		// ── WC Product Table Lite plugin ─────────────────────────────
 		add_filter( 'wcpt_query_args', [ $this, 'filter_wcpt_query' ] );
+		add_filter( 'wcpt_products', [ $this, 'filter_wcpt_products' ] );
+
+		// ── Cart & Checkout protection ────────────────────────────
+		add_filter( 'woocommerce_add_to_cart_validation', [ $this, 'validate_cart_addition' ], 10, 3 );
+		add_filter( 'woocommerce_is_purchasable', [ $this, 'make_non_purchasable' ], 10, 2 );
+		add_action( 'woocommerce_check_cart_items', [ $this, 'validate_cart_on_checkout' ] );
+		add_filter( 'woocommerce_get_cart_item_from_session', [ $this, 'remove_b2b_from_cart_session' ], 10, 2 );
+
+		// ── Hide price for non-purchasable products ────────────────────
+		add_filter( 'woocommerce_get_price_html', [ $this, 'hide_price_for_b2b_only' ], 1, 2 );
 
 		// ── Single product 404 ───────────────────────────────────────
 		add_action( 'template_redirect', [ $this, 'block_single_product_access' ] );
@@ -230,6 +261,11 @@ class Product_Visibility {
 
 	/**
 	 * WC Product Table Lite plugin query args.
+	 *
+	 * This method handles two scenarios:
+	 * 1. Regular queries: adds B2B product IDs to post__not_in
+	 * 2. Search/filter queries: removes B2B products from post__in array
+	 *    (search results populate post__in, so we need to filter them)
 	 */
 	public function filter_wcpt_query( array $query_args ): array {
 		// Baseline filters applied for all users.
@@ -256,11 +292,146 @@ class Product_Visibility {
 		if ( ! $this->user_can_see_b2b() ) {
 			$b2b_ids = $this->get_b2b_only_ids();
 			if ( ! empty( $b2b_ids ) ) {
+				// Add to post__not_in
 				$query_args['post__not_in'] = $this->merge_post_not_in( $query_args['post__not_in'] ?? [] );
+
+				// Also remove from post__in if it exists (e.g., from search results)
+				if ( ! empty( $query_args['post__in'] ) && is_array( $query_args['post__in'] ) ) {
+					$query_args['post__in'] = array_values( array_diff( $query_args['post__in'], $b2b_ids ) );
+					// Ensure we don't end up with an empty array that returns all products
+					if ( empty( $query_args['post__in'] ) ) {
+						$query_args['post__in'] = [ 0 ]; // No results
+					}
+				}
 			}
 		}
 
 		return $query_args;
+	}
+
+	/**
+	 * Filter WC Product Table Lite WP_Query results to exclude B2B products.
+	 */
+	public function filter_wcpt_products( \WP_Query $products ): \WP_Query {
+		if ( $this->user_can_see_b2b() ) {
+			return $products;
+		}
+
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) || empty( $products->posts ) ) {
+			return $products;
+		}
+
+		// Additional safety net: filter out B2B products from the results
+		$products->posts = array_filter( $products->posts, function( $post ) use ( $b2b_ids ) {
+			return ! in_array( $post->ID, $b2b_ids, true );
+		} );
+
+		// Reset array keys
+		$products->posts = array_values( $products->posts );
+
+		// Update post count
+		$products->post_count = count( $products->posts );
+
+		return $products;
+	}
+
+	/**
+	 * Validate add to cart — prevent B2B-only products from being added to cart.
+	 */
+	public function validate_cart_addition( bool $passed, int $product_id, int $quantity ): bool {
+		if ( $this->user_can_see_b2b() ) {
+			return $passed;
+		}
+
+		if ( get_post_meta( $product_id, 'justb2b_only_visible', true ) === 'yes' ) {
+			wc_add_notice(
+				__( 'This product is only available for B2B customers.', 'justb2b-larose' ),
+				'error'
+			);
+			return false;
+		}
+
+		return $passed;
+	}
+
+	/**
+	 * Make B2B-only products non-purchasable for non-B2B users.
+	 */
+	public function make_non_purchasable( bool $purchasable, \WC_Product $product ): bool {
+		if ( $this->user_can_see_b2b() ) {
+			return $purchasable;
+		}
+
+		$product_id = $product->get_id();
+		if ( get_post_meta( $product_id, 'justb2b_only_visible', true ) === 'yes' ) {
+			return false;
+		}
+
+		return $purchasable;
+	}
+
+	/**
+	 * Validate cart items on checkout — ensure no B2B-only products.
+	 */
+	public function validate_cart_on_checkout(): void {
+		if ( $this->user_can_see_b2b() ) {
+			return;
+		}
+
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
+			return;
+		}
+
+		$cart = WC()->cart;
+		if ( ! $cart ) {
+			return;
+		}
+
+		foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
+			$product_id = $cart_item['product_id'];
+			if ( in_array( $product_id, $b2b_ids, true ) ) {
+				$cart->remove_cart_item( $cart_item_key );
+				wc_add_notice(
+					__( 'A product in your cart is no longer available and has been removed.', 'justb2b-larose' ),
+					'error'
+				);
+			}
+		}
+	}
+
+	/**
+	 * Remove B2B-only products from cart when loading from session.
+	 */
+	public function remove_b2b_from_cart_session( array $cart_item, array $values ): array {
+		if ( $this->user_can_see_b2b() ) {
+			return $cart_item;
+		}
+
+		$product_id = $cart_item['product_id'] ?? 0;
+		if ( $product_id && get_post_meta( $product_id, 'justb2b_only_visible', true ) === 'yes' ) {
+			// Return empty array to remove from cart
+			return [];
+		}
+
+		return $cart_item;
+	}
+
+	/**
+	 * Hide price HTML for B2B-only products when user cannot purchase them.
+	 */
+	public function hide_price_for_b2b_only( string $price, \WC_Product $product ): string {
+		if ( $this->user_can_see_b2b() ) {
+			return $price;
+		}
+
+		$product_id = $product->get_id();
+		if ( get_post_meta( $product_id, 'justb2b_only_visible', true ) === 'yes' ) {
+			return '';
+		}
+
+		return $price;
 	}
 
 	/**
