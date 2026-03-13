@@ -6,9 +6,13 @@ namespace JustB2B;
  * Product Visibility — B2B / B2C separation.
  *
  * Products with `justb2b_only_visible = "yes"` are hidden from every public
- * surface for non-B2B users via meta_query conditions injected directly
- * into every relevant query. No transients, no pre-loaded ID lists —
- * filtering happens entirely at the SQL level.
+ * surface for non-B2B users.
+ *
+ * Strategy: one cheap indexed query per request loads the (small) list of
+ * B2B-only product IDs into memory, then every product query on the page
+ * receives a `post__not_in` clause — a simple `WHERE ID NOT IN (…)` on
+ * the primary key. This avoids the expensive LEFT JOIN + OR + NOT EXISTS
+ * meta_query pattern that was causing slow page loads.
  *
  * Covered surfaces:
  *  – WooCommerce shop / archive / category / tag queries
@@ -28,6 +32,9 @@ class Product_Visibility {
 
 	/** Cached per-request: null = not yet checked. */
 	private ?bool $can_see_b2b = null;
+
+	/** Cached per-request list of B2B-only product IDs (loaded once). */
+	private ?array $b2b_only_ids = null;
 
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
@@ -78,37 +85,44 @@ class Product_Visibility {
 	}
 
 	/* ==================================================================
-	 * Reusable meta-query snippet
+	 * B2B-only product IDs — single indexed query, cached per request
 	 * ================================================================*/
 
 	/**
-	 * Meta query that excludes products where justb2b_only_visible = 'yes'.
+	 * Return product IDs where justb2b_only_visible = 'yes'.
 	 *
-	 * Matches products where the meta key either does not exist or has
-	 * any value other than 'yes'. WordPress translates this to a single
-	 * LEFT JOIN + WHERE condition — no PHP-level filtering needed.
+	 * Runs once per request. The underlying SQL uses the (meta_key, meta_value)
+	 * index on wp_postmeta — typically sub-millisecond even with 100k+ rows.
 	 */
-	private function get_exclude_meta_query(): array {
-		return [
-			'relation' => 'OR',
-			[
-				'key'     => 'justb2b_only_visible',
-				'value'   => 'yes',
-				'compare' => '!=',
-			],
-			[
-				'key'     => 'justb2b_only_visible',
-				'compare' => 'NOT EXISTS',
-			],
-		];
+	private function get_b2b_only_ids(): array {
+		if ( $this->b2b_only_ids !== null ) {
+			return $this->b2b_only_ids;
+		}
+
+		global $wpdb;
+
+		$this->b2b_only_ids = array_map( 'intval', $wpdb->get_col(
+			"SELECT post_id
+			 FROM {$wpdb->postmeta}
+			 WHERE meta_key = 'justb2b_only_visible'
+			   AND meta_value = 'yes'"
+		) );
+
+		return $this->b2b_only_ids;
 	}
 
+	/* ==================================================================
+	 * Query helpers
+	 * ================================================================*/
+
 	/**
-	 * Append the exclusion meta query to an existing meta_query array.
+	 * Merge B2B-only IDs into an existing post__not_in array.
+	 *
+	 * Using post__not_in produces `WHERE ID NOT IN (…)` on the primary key,
+	 * which is orders of magnitude faster than an OR meta_query with NOT EXISTS.
 	 */
-	private function append_meta_query( array $meta_query ): array {
-		$meta_query[] = $this->get_exclude_meta_query();
-		return $meta_query;
+	private function merge_post_not_in( array $existing_not_in ): array {
+		return array_unique( array_merge( $existing_not_in, $this->get_b2b_only_ids() ) );
 	}
 
 	/* ==================================================================
@@ -116,7 +130,7 @@ class Product_Visibility {
 	 * ================================================================*/
 
 	/**
-	 * Catch-all: inject meta query into every front-end WP_Query for products.
+	 * Catch-all: inject post__not_in into every front-end WP_Query for products.
 	 */
 	public function exclude_from_queries( \WP_Query $query ): void {
 		if ( $this->user_can_see_b2b() ) {
@@ -138,8 +152,13 @@ class Product_Visibility {
 			return;
 		}
 
-		$existing = (array) $query->get( 'meta_query', [] );
-		$query->set( 'meta_query', $this->append_meta_query( $existing ) );
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
+			return;
+		}
+
+		$existing = (array) $query->get( 'post__not_in', [] );
+		$query->set( 'post__not_in', $this->merge_post_not_in( $existing ) );
 	}
 
 	/**
@@ -150,7 +169,12 @@ class Product_Visibility {
 			return $args;
 		}
 
-		$args['meta_query'] = $this->append_meta_query( $args['meta_query'] ?? [] );
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
+			return $args;
+		}
+
+		$args['post__not_in'] = $this->merge_post_not_in( $args['post__not_in'] ?? [] );
 		return $args;
 	}
 
@@ -162,7 +186,12 @@ class Product_Visibility {
 			return $query;
 		}
 
-		$query['meta_query'] = $this->append_meta_query( $query['meta_query'] ?? [] );
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
+			return $query;
+		}
+
+		$query['post__not_in'] = $this->merge_post_not_in( $query['post__not_in'] ?? [] );
 		return $query;
 	}
 
@@ -174,42 +203,29 @@ class Product_Visibility {
 			return $args;
 		}
 
-		$args['meta_query'] = $this->append_meta_query( $args['meta_query'] ?? [] );
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
+			return $args;
+		}
+
+		$args['post__not_in'] = $this->merge_post_not_in( $args['post__not_in'] ?? [] );
 		return $args;
 	}
 
 	/**
 	 * Filter an array of product IDs (related, cross-sells, up-sells).
-	 *
-	 * These hooks receive pre-built ID arrays, so we run a single DB
-	 * query to remove any B2B-only IDs from the list.
 	 */
 	public function filter_product_ids( array $ids ): array {
 		if ( $this->user_can_see_b2b() || empty( $ids ) ) {
 			return $ids;
 		}
 
-		global $wpdb;
-
-		$ids_int      = array_map( 'intval', $ids );
-		$placeholders = implode( ',', array_fill( 0, count( $ids_int ), '%d' ) );
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$b2b_only_in_set = $wpdb->get_col( $wpdb->prepare(
-			"SELECT post_id FROM {$wpdb->postmeta}
-			 WHERE meta_key = 'justb2b_only_visible'
-			   AND meta_value = 'yes'
-			   AND post_id IN ($placeholders)",
-			...$ids_int
-		) );
-
-		if ( empty( $b2b_only_in_set ) ) {
+		$b2b_ids = $this->get_b2b_only_ids();
+		if ( empty( $b2b_ids ) ) {
 			return $ids;
 		}
 
-		$b2b_only_in_set = array_map( 'intval', $b2b_only_in_set );
-
-		return array_values( array_diff( $ids, $b2b_only_in_set ) );
+		return array_values( array_diff( $ids, $b2b_ids ) );
 	}
 
 	/**
@@ -238,7 +254,10 @@ class Product_Visibility {
 		];
 
 		if ( ! $this->user_can_see_b2b() ) {
-			$query_args['meta_query'] = $this->append_meta_query( $query_args['meta_query'] ?? [] );
+			$b2b_ids = $this->get_b2b_only_ids();
+			if ( ! empty( $b2b_ids ) ) {
+				$query_args['post__not_in'] = $this->merge_post_not_in( $query_args['post__not_in'] ?? [] );
+			}
 		}
 
 		return $query_args;
@@ -246,9 +265,6 @@ class Product_Visibility {
 
 	/**
 	 * Block direct URL access to B2B-only products for non-B2B users → 404.
-	 *
-	 * Uses a single get_post_meta() call on the current product — no
-	 * pre-loaded ID list needed.
 	 */
 	public function block_single_product_access(): void {
 		if ( ! is_singular( 'product' ) ) {
