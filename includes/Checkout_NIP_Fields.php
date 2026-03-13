@@ -129,7 +129,7 @@ JS;
         $fields[ self::FIELD_NIP ] = [
             'label'       => __('NIP', 'justb2b-larose'),
             'placeholder' => __('Numer NIP', 'justb2b-larose'),
-            'required'    => true,
+            'required'    => false,
             'class'       => [ 'form-row-wide' ],
             'clear'       => true,
             'priority'    => $company_priority + 2,
