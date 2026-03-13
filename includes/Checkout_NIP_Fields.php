@@ -44,6 +44,9 @@ class Checkout_NIP_Fields
         /* Front-end: toggle NIP visibility based on checkbox */
         add_action('wp_enqueue_scripts', [ $this, 'enqueue_toggle_script' ]);
 
+        /* Server-side validation: NIP required when faktura is checked */
+        add_action('woocommerce_after_checkout_validation', [ $this, 'validate_nip_field' ], 10, 2);
+
         /* Save meta on order creation */
         add_action('woocommerce_checkout_create_order', [ $this, 'add_meta_data_to_order' ], 10, 2);
 
@@ -75,6 +78,7 @@ class Checkout_NIP_Fields
     function toggleNip(){
         var checked = $('#billing_faktura').is(':checked');
         $('#billing_nip_field').toggle(checked);
+        $('#billing_nip').prop('required', checked);
     }
     $(document.body).on('change','#billing_faktura',toggleNip);
     $(document).on('updated_checkout',toggleNip);
@@ -85,6 +89,9 @@ JS;
         wp_register_script('justb2b-nip-toggle', '', [], JUSTB2B_VERSION, true);
         wp_enqueue_script('justb2b-nip-toggle');
         wp_add_inline_script('justb2b-nip-toggle', $js);
+
+        /* Hide NIP field by default until the checkbox activates it */
+        wp_add_inline_style('woocommerce-general', '.justb2b-nip-hidden { display: none; }');
     }
 
     /* ------------------------------------------------------------------
@@ -130,12 +137,39 @@ JS;
             'label'       => __('NIP', 'justb2b-larose'),
             'placeholder' => __('Numer NIP', 'justb2b-larose'),
             'required'    => false,
-            'class'       => [ 'form-row-wide' ],
+            'class'       => [ 'form-row-wide', 'justb2b-nip-hidden' ],
             'clear'       => true,
             'priority'    => $company_priority + 2,
         ];
 
         return $fields;
+    }
+
+    /* ------------------------------------------------------------------
+     * 1b. Server-side validation
+     * ----------------------------------------------------------------*/
+
+    /**
+     * Validate that NIP is provided when the faktura checkbox is checked.
+     *
+     * @param array     $data   Posted checkout data.
+     * @param \WP_Error $errors Validation errors.
+     */
+    public function validate_nip_field(array $data, \WP_Error $errors): void
+    {
+        if (Helper::is_b2b_accepted_user()) {
+            return;
+        }
+
+        $faktura = ! empty($data[ self::FIELD_FAKTURA ]);
+        $nip     = isset($data[ self::FIELD_NIP ]) ? trim($data[ self::FIELD_NIP ]) : '';
+
+        if ($faktura && empty($nip)) {
+            $errors->add(
+                'billing_nip_required',
+                __('Proszę podać numer NIP, jeśli chcesz otrzymać fakturę VAT.', 'justb2b-larose')
+            );
+        }
     }
 
     /* ------------------------------------------------------------------
@@ -155,9 +189,11 @@ JS;
         $faktura = isset($data[ self::FIELD_FAKTURA ]) ? '1' : '0';
         $order->update_meta_data(self::META_FAKTURA, $faktura);
 
-        /* NIP text field */
-        if (! empty($data[ self::FIELD_NIP ])) {
+        /* NIP text field — only save when faktura is requested */
+        if ($faktura === '1' && ! empty($data[ self::FIELD_NIP ])) {
             $order->update_meta_data(self::META_NIP, sanitize_text_field($data[ self::FIELD_NIP ]));
+        } else {
+            $order->update_meta_data(self::META_NIP, '');
         }
     }
 
