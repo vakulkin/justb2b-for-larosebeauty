@@ -6,8 +6,11 @@ namespace JustB2B;
  * Product Visibility — B2B / B2C separation.
  *
  * Products with `justb2b_only_visible = "yes"` are hidden from every public
- * surface for non-B2B users:
+ * surface for non-B2B users via meta_query conditions injected directly
+ * into every relevant query. No transients, no pre-loaded ID lists —
+ * filtering happens entirely at the SQL level.
  *
+ * Covered surfaces:
  *  – WooCommerce shop / archive / category / tag queries
  *  – WordPress search
  *  – WooCommerce [products] shortcode
@@ -23,14 +26,8 @@ class Product_Visibility {
 
 	private static $instance = null;
 
-	private const TRANSIENT_KEY = 'justb2b_b2b_only_ids';
-	private const TRANSIENT_TTL = DAY_IN_SECONDS;
-
 	/** Cached per-request: null = not yet checked. */
 	private ?bool $can_see_b2b = null;
-
-	/** Cached list of B2B-only product IDs (loaded once per request). */
-	private ?array $b2b_only_ids = null;
 
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
@@ -40,14 +37,6 @@ class Product_Visibility {
 	}
 
 	private function __construct() {
-		/*
-		 * Strategy: use a single `pre_get_posts` catch-all to inject the
-		 * meta-query into every front-end product query.  WooCommerce-specific
-		 * filters are only added where `pre_get_posts` cannot reach (data-store,
-		 * REST API, shortcode, widget, ID lists).  This avoids duplicate
-		 * meta-query clauses that cause extra SQL JOINs.
-		 */
-
 		// ── WP-level catch-all (covers shop, archives, search, etc.) ─
 		add_action( 'pre_get_posts', [ $this, 'exclude_from_queries' ], 99 );
 
@@ -74,12 +63,6 @@ class Product_Visibility {
 
 		// ── Single product 404 ───────────────────────────────────────
 		add_action( 'template_redirect', [ $this, 'block_single_product_access' ] );
-
-		// ── Invalidate transient when B2B visibility meta changes ────
-		add_action( 'acf/save_post', [ $this, 'maybe_flush_cache' ] );
-		add_action( 'updated_post_meta', [ $this, 'flush_on_meta_change' ], 10, 4 );
-		add_action( 'added_post_meta', [ $this, 'flush_on_meta_change' ], 10, 4 );
-		add_action( 'deleted_post_meta', [ $this, 'flush_on_meta_change' ], 10, 4 );
 	}
 
 	/* ==================================================================
@@ -95,85 +78,15 @@ class Product_Visibility {
 	}
 
 	/* ==================================================================
-	 * B2B-only product IDs — transient + per-request property cache
-	 * ================================================================*/
-
-	/**
-	 * Return an array of product IDs marked as B2B-only.
-	 *
-	 * First check: in-memory property (zero cost on repeat calls).
-	 * Second check: transient (persists across requests, avoids DB hit).
-	 * Fallback: single DB query, then store in transient + property.
-	 */
-	private function get_b2b_only_ids(): array {
-		if ( $this->b2b_only_ids !== null ) {
-			return $this->b2b_only_ids;
-		}
-
-		$cached = get_transient( self::TRANSIENT_KEY );
-
-		if ( is_array( $cached ) ) {
-			$this->b2b_only_ids = $cached;
-			return $this->b2b_only_ids;
-		}
-
-		global $wpdb;
-
-		$this->b2b_only_ids = array_map( 'intval', $wpdb->get_col(
-			"SELECT post_id FROM {$wpdb->postmeta}
-			 WHERE meta_key = 'justb2b_only_visible'
-			   AND meta_value = 'yes'"
-		) );
-
-		set_transient( self::TRANSIENT_KEY, $this->b2b_only_ids, self::TRANSIENT_TTL );
-
-		return $this->b2b_only_ids;
-	}
-
-	/**
-	 * Whether a given product ID is restricted to B2B users.
-	 */
-	private function is_b2b_only( int $product_id ): bool {
-		return in_array( $product_id, $this->get_b2b_only_ids(), true );
-	}
-
-	/* ==================================================================
-	 * Cache invalidation
-	 * ================================================================*/
-
-	/**
-	 * Flush the transient + in-memory cache.
-	 */
-	private function flush_cache(): void {
-		delete_transient( self::TRANSIENT_KEY );
-		$this->b2b_only_ids = null;
-	}
-
-	/**
-	 * Called on `acf/save_post` — flush when a product is saved.
-	 */
-	public function maybe_flush_cache( $post_id ): void {
-		if ( get_post_type( $post_id ) === 'product' ) {
-			$this->flush_cache();
-		}
-	}
-
-	/**
-	 * Called on updated/added/deleted_post_meta — flush only when
-	 * the justb2b_only_visible key changes.
-	 */
-	public function flush_on_meta_change( $meta_id, $object_id, $meta_key, $meta_value ): void {
-		if ( $meta_key === 'justb2b_only_visible' ) {
-			$this->flush_cache();
-		}
-	}
-
-	/* ==================================================================
 	 * Reusable meta-query snippet
 	 * ================================================================*/
 
 	/**
 	 * Meta query that excludes products where justb2b_only_visible = 'yes'.
+	 *
+	 * Matches products where the meta key either does not exist or has
+	 * any value other than 'yes'. WordPress translates this to a single
+	 * LEFT JOIN + WHERE condition — no PHP-level filtering needed.
 	 */
 	private function get_exclude_meta_query(): array {
 		return [
@@ -267,20 +180,36 @@ class Product_Visibility {
 
 	/**
 	 * Filter an array of product IDs (related, cross-sells, up-sells).
-	 * Uses the cached ID list — zero extra DB queries.
+	 *
+	 * These hooks receive pre-built ID arrays, so we run a single DB
+	 * query to remove any B2B-only IDs from the list.
 	 */
 	public function filter_product_ids( array $ids ): array {
-		if ( $this->user_can_see_b2b() ) {
+		if ( $this->user_can_see_b2b() || empty( $ids ) ) {
 			return $ids;
 		}
 
-		$b2b_ids = $this->get_b2b_only_ids();
+		global $wpdb;
 
-		if ( empty( $b2b_ids ) ) {
+		$ids_int      = array_map( 'intval', $ids );
+		$placeholders = implode( ',', array_fill( 0, count( $ids_int ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$b2b_only_in_set = $wpdb->get_col( $wpdb->prepare(
+			"SELECT post_id FROM {$wpdb->postmeta}
+			 WHERE meta_key = 'justb2b_only_visible'
+			   AND meta_value = 'yes'
+			   AND post_id IN ($placeholders)",
+			...$ids_int
+		) );
+
+		if ( empty( $b2b_only_in_set ) ) {
 			return $ids;
 		}
 
-		return array_values( array_diff( $ids, $b2b_ids ) );
+		$b2b_only_in_set = array_map( 'intval', $b2b_only_in_set );
+
+		return array_values( array_diff( $ids, $b2b_only_in_set ) );
 	}
 
 	/**
@@ -317,6 +246,9 @@ class Product_Visibility {
 
 	/**
 	 * Block direct URL access to B2B-only products for non-B2B users → 404.
+	 *
+	 * Uses a single get_post_meta() call on the current product — no
+	 * pre-loaded ID list needed.
 	 */
 	public function block_single_product_access(): void {
 		if ( ! is_singular( 'product' ) ) {
@@ -328,7 +260,11 @@ class Product_Visibility {
 		}
 
 		global $post;
-		if ( ! $post || ! $this->is_b2b_only( (int) $post->ID ) ) {
+		if ( ! $post ) {
+			return;
+		}
+
+		if ( get_post_meta( $post->ID, 'justb2b_only_visible', true ) !== 'yes' ) {
 			return;
 		}
 
