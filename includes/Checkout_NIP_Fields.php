@@ -21,8 +21,8 @@ class Checkout_NIP_Fields
     private const FIELD_NIP     = 'billing_nip';
 
     /** Order meta keys */
-    private const META_FAKTURA = '_billing_faktura';
-    private const META_NIP     = '_billing_nip';
+    private const META_FAKTURA = 'billing_faktura';
+    private const META_NIP     = 'billing_nip';
 
     /* ------------------------------------------------------------------
      * Singleton
