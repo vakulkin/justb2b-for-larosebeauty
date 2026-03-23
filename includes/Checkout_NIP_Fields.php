@@ -77,8 +77,22 @@ class Checkout_NIP_Fields
 (function($){
     function toggleNip(){
         var checked = $('#billing_faktura').is(':checked');
-        $('#billing_nip_field').toggle(checked);
-        $('#billing_nip').prop('required', checked);
+        var $field  = $('#billing_nip_field');
+        var $input  = $('#billing_nip');
+
+        $field.toggle(checked);
+
+        if (checked) {
+            $field.addClass('validate-required');
+            $input.prop('required', true);
+            if (!$field.find('label abbr.required').length) {
+                $field.find('label').append('<abbr class="required" title="required">&nbsp;*</abbr>');
+            }
+        } else {
+            $field.removeClass('validate-required woocommerce-invalid woocommerce-invalid-required-field');
+            $input.prop('required', false).val('');
+            $field.find('label abbr.required').remove();
+        }
     }
     $(document.body).on('change','#billing_faktura',toggleNip);
     $(document).on('updated_checkout',toggleNip);
@@ -185,8 +199,8 @@ JS;
     public function add_meta_data_to_order(\WC_Order $order, array $data): void
     {
 
-        /* faktura checkbox — WooCommerce sends '1' when checked, absent otherwise */
-        $faktura = isset($data[ self::FIELD_FAKTURA ]) ? '1' : '0';
+        /* faktura checkbox — WooCommerce sends '1' when checked, empty otherwise */
+        $faktura = ! empty($data[ self::FIELD_FAKTURA ]) ? '1' : '0';
         $order->update_meta_data(self::META_FAKTURA, $faktura);
 
         /* NIP text field — only save when faktura is requested */
