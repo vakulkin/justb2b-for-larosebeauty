@@ -18,11 +18,8 @@ class Checkout_NIP_Fields
 
     /** Checkout field IDs */
     private const FIELD_FAKTURA = 'billing_faktura';
-    private const FIELD_NIP     = 'billing_nip';
+    private const FIELD_NIP = 'billing_nip';
 
-    /** Order meta keys */
-    private const META_FAKTURA = 'billing_faktura';
-    private const META_NIP     = 'billing_nip';
 
     /* ------------------------------------------------------------------
      * Singleton
@@ -53,10 +50,16 @@ class Checkout_NIP_Fields
         /* Admin: show fields in order billing section */
         add_filter('woocommerce_admin_billing_fields', [ $this, 'add_admin_billing_fields' ]);
 
-        /* Address formatting */
-        add_filter('woocommerce_order_formatted_billing_address', [ $this, 'add_to_formatted_billing_address' ], 10, 2);
-        add_filter('woocommerce_localisation_address_formats', [ $this, 'add_to_address_formats' ]);
-        add_filter('woocommerce_formatted_address_replacements', [ $this, 'add_address_replacements' ], 10, 2);
+        /* Admin: display NIP / Faktura / Klient meta after billing address */
+        add_action('woocommerce_admin_order_data_after_billing_address', [ $this, 'display_order_meta_fields' ]);
+
+        /* Admin: B2B column in orders list — HPOS */
+        add_filter('woocommerce_shop_order_list_table_columns', [ $this, 'add_b2b_column' ]);
+        add_action('woocommerce_shop_order_list_table_custom_column', [ $this, 'render_b2b_column' ], 10, 2);
+
+        /* Admin: B2B column in orders list — legacy post table */
+        add_filter('manage_edit-shop_order_columns', [ $this, 'add_b2b_column' ]);
+        add_action('manage_shop_order_posts_custom_column', [ $this, 'render_b2b_column_legacy' ], 10, 2);
     }
 
     /* ------------------------------------------------------------------
@@ -139,21 +142,21 @@ JS;
             : 30;
 
         $fields[ self::FIELD_FAKTURA ] = [
-            'label'    => __('Chcę otrzymać fakturę VAT', 'justb2b-larose'),
+            'label' => __('Chcę otrzymać fakturę VAT', 'justb2b-larose'),
             'required' => false,
-            'class'    => [ 'form-row-wide' ],
-            'type'     => 'checkbox',
-            'clear'    => true,
+            'class' => [ 'form-row-wide' ],
+            'type' => 'checkbox',
+            'clear' => true,
             'priority' => $company_priority + 1,
         ];
 
         $fields[ self::FIELD_NIP ] = [
-            'label'       => __('NIP', 'justb2b-larose'),
+            'label' => __('NIP', 'justb2b-larose'),
             'placeholder' => __('Numer NIP', 'justb2b-larose'),
-            'required'    => false,
-            'class'       => [ 'form-row-wide', 'justb2b-nip-hidden' ],
-            'clear'       => true,
-            'priority'    => $company_priority + 2,
+            'required' => false,
+            'class' => [ 'form-row-wide', 'justb2b-nip-hidden' ],
+            'clear' => true,
+            'priority' => $company_priority + 2,
         ];
 
         return $fields;
@@ -176,7 +179,7 @@ JS;
         }
 
         $faktura = ! empty($data[ self::FIELD_FAKTURA ]);
-        $nip     = isset($data[ self::FIELD_NIP ]) ? trim($data[ self::FIELD_NIP ]) : '';
+        $nip = isset($data[ self::FIELD_NIP ]) ? trim($data[ self::FIELD_NIP ]) : '';
 
         if ($faktura && empty($nip)) {
             $errors->add(
@@ -201,13 +204,13 @@ JS;
 
         /* faktura checkbox — WooCommerce sends '1' when checked, empty otherwise */
         $faktura = ! empty($data[ self::FIELD_FAKTURA ]) ? '1' : '0';
-        $order->update_meta_data(self::META_FAKTURA, $faktura);
+        $order->update_meta_data(self::FIELD_FAKTURA, $faktura);
 
         /* NIP text field — only save when faktura is requested */
         if ($faktura === '1' && ! empty($data[ self::FIELD_NIP ])) {
-            $order->update_meta_data(self::META_NIP, sanitize_text_field($data[ self::FIELD_NIP ]));
+            $order->update_meta_data(self::FIELD_NIP, sanitize_text_field($data[ self::FIELD_NIP ]));
         } else {
-            $order->update_meta_data(self::META_NIP, '');
+            $order->update_meta_data(self::FIELD_NIP, '');
         }
     }
 
@@ -225,9 +228,9 @@ JS;
     {
 
         $fields['faktura'] = [
-            'label'   => __('Faktura VAT', 'justb2b-larose'),
-            'show'    => false,
-            'type'    => 'select',
+            'label' => __('Faktura VAT', 'justb2b-larose'),
+            'show' => false,
+            'type' => 'select',
             'options' => [
                 '0' => __('No', 'justb2b-larose'),
                 '1' => __('Yes', 'justb2b-larose'),
@@ -236,73 +239,127 @@ JS;
 
         $fields['nip'] = [
             'label' => __('NIP', 'justb2b-larose'),
-            'show'  => true,
+            'show' => true,
         ];
 
         return $fields;
     }
 
     /* ------------------------------------------------------------------
-     * 4. Address formatting
+     * 4. Admin orders list — B2B column
      * ----------------------------------------------------------------*/
 
     /**
-     * Inject NIP & faktura values into the formatted billing address array.
+     * Register the "B2B" column in the admin orders list.
      *
-     * @param array     $address Address components.
-     * @param \WC_Order $order   Order object.
+     * @param array $columns Existing columns.
      * @return array
      */
-    public function add_to_formatted_billing_address(array $address, \WC_Order $order): array
+    public function add_b2b_column(array $columns): array
     {
-        $address['nip']     = $order->get_meta(self::META_NIP) ?: '';
-        $address['faktura'] = $order->get_meta(self::META_FAKTURA) ?: '';
-        return $address;
+        $new = [];
+        foreach ($columns as $key => $label) {
+            $new[ $key ] = $label;
+            if ($key === 'order_total') {
+                $new['b2b_meta'] = __('B2B', 'justb2b-larose');
+            }
+        }
+        return $new;
     }
 
     /**
-     * Add {nip} and {faktura} placeholders to the PL address format.
+     * Render the B2B column for HPOS orders list.
      *
-     * @param array $formats Localisation address formats keyed by country.
-     * @return array
+     * @param string    $column Column key.
+     * @param \WC_Order $order  Order object.
      */
-    public function add_to_address_formats(array $formats): array
+    public function render_b2b_column(string $column, \WC_Order $order): void
     {
-
-        /* Default format as fallback */
-        $default = $formats['default'] ?? "{name}\n{company}\n{address_1}\n{address_2}\n{city}\n{state}\n{postcode}\n{country}";
-
-        $pl_format = $formats['PL'] ?? $default;
-
-        /* Append placeholders if not already present */
-        if (strpos($pl_format, '{nip}') === false) {
-            $pl_format .= "\n{nip}";
+        if ($column !== 'b2b_meta') {
+            return;
         }
-        if (strpos($pl_format, '{faktura}') === false) {
-            $pl_format .= "\n{faktura}";
-        }
-
-        $formats['PL'] = $pl_format;
-
-        return $formats;
+        $this->output_b2b_column_html($order);
     }
 
     /**
-     * Replace {nip} / {faktura} placeholders with real values.
+     * Render the B2B column for the legacy post-based orders list.
      *
-     * @param array $replacements Placeholder => value map.
-     * @param array $args         Address components.
-     * @return array
+     * @param string $column  Column key.
+     * @param int    $post_id Post / order ID.
      */
-    public function add_address_replacements(array $replacements, array $args): array
+    public function render_b2b_column_legacy(string $column, int $post_id): void
     {
+        if ($column !== 'b2b_meta') {
+            return;
+        }
+        $order = wc_get_order($post_id);
+        if ($order) {
+            $this->output_b2b_column_html($order);
+        }
+    }
 
-        $nip     = $args['nip'] ?? '';
-        $faktura = $args['faktura'] ?? '';
+    /**
+     * Shared HTML output for the B2B column.
+     *
+     * @param \WC_Order $order Order object.
+     */
+    private function output_b2b_column_html(\WC_Order $order): void
+    {
+        $faktura = $order->get_meta(self::FIELD_FAKTURA);
+        $nip     = $order->get_meta(self::FIELD_NIP);
+        $user_id = $order->get_customer_id();
+        $status  = $user_id ? Helper::get_user_status($user_id) : 'guest';
 
-        $replacements['{nip}']     = $nip ? sprintf(__('NIP: %s', 'justb2b-larose'), $nip) : '';
-        $replacements['{faktura}'] = $faktura === '1' ? __('Faktura VAT: Tak', 'justb2b-larose') : '';
+        $status_labels = [
+            'b2b_accepted' => 'B2B',
+            'b2b_pending'  => 'Waiting for B2B',
+            'b2c'          => 'B2C',
+            'guest'        => 'Guest',
+        ];
 
-        return $replacements;
+        $klient_label  = $status_labels[ $status ] ?? esc_html($status);
+        $faktura_label = $faktura === '1' ? 'Tak' : 'Nie';
+        ?>
+        <small style="display:block;line-height:1.6;">
+            <strong>NIP:</strong> <?php echo esc_html($nip ?: '—'); ?><br>
+            <strong>Faktura:</strong> <?php echo esc_html($faktura_label); ?><br>
+            <strong>Klient:</strong> <?php echo esc_html($klient_label); ?>
+        </small>
+        <?php
+    }
+
+    /* ------------------------------------------------------------------
+     * 5. Admin order meta display
+     * ----------------------------------------------------------------*/
+
+    /**
+     * Render NIP, Faktura and Klient fields after the billing address
+     * in the admin order edit screen.
+     *
+     * @param \WC_Order $order Order object.
+     */
+    public function display_order_meta_fields(\WC_Order $order): void
+    {
+        $faktura = $order->get_meta(self::FIELD_FAKTURA);
+        $nip     = $order->get_meta(self::FIELD_NIP);
+        $user_id = $order->get_customer_id();
+        $status  = $user_id ? Helper::get_user_status($user_id) : 'guest';
+
+        $status_labels = [
+            'b2b_accepted' => __('B2B', 'justb2b-larose'),
+            'b2b_pending'  => __('Waiting for B2B', 'justb2b-larose'),
+            'b2c'          => __('B2C', 'justb2b-larose'),
+            'guest'        => __('Guest', 'justb2b-larose'),
+        ];
+
+        $klient_label  = $status_labels[ $status ] ?? esc_html($status);
+        $faktura_label = $faktura === '1' ? __('Tak', 'justb2b-larose') : __('Nie', 'justb2b-larose');
+        ?>
+        <div class="justb2b-order-meta" style="margin-top:10px;">
+            <p><strong><?php esc_html_e('NIP:', 'justb2b-larose'); ?></strong> <?php echo esc_html($nip ?: '—'); ?></p>
+            <p><strong><?php esc_html_e('Faktura:', 'justb2b-larose'); ?></strong> <?php echo esc_html($faktura_label); ?></p>
+            <p><strong><?php esc_html_e('Klient:', 'justb2b-larose'); ?></strong> <?php echo esc_html($klient_label); ?></p>
+        </div>
+        <?php
     }
 }

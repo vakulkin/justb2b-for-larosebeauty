@@ -2,6 +2,51 @@
 (function ($) {
     'use strict';
 
+    var SKELETON_HTML = [
+        '<div class="justb2b-popup-cross-sell justb2b-cross-sell-skeleton">',
+        '<h4 class="justb2b-cross-sell-title justb2b-skeleton-block justb2b-skeleton-title"></h4>',
+        '<div class="justb2b-cross-sell-products">',
+        '<div class="justb2b-cross-sell-item">',
+        '<div class="justb2b-cross-sell-image justb2b-skeleton-block"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-name"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-price"></div>',
+        '</div>',
+        '<div class="justb2b-cross-sell-item">',
+        '<div class="justb2b-cross-sell-image justb2b-skeleton-block"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-name"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-price"></div>',
+        '</div>',
+        '<div class="justb2b-cross-sell-item">',
+        '<div class="justb2b-cross-sell-image justb2b-skeleton-block"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-name"></div>',
+        '<div class="justb2b-skeleton-block justb2b-skeleton-line justb2b-skeleton-price"></div>',
+        '</div>',
+        '</div>',
+        '</div>'
+    ].join('');
+
+    function doAjax(onSuccess) {
+        return $.ajax({
+            url: woodmart_settings.ajaxurl || wc_add_to_cart_params.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'justb2b_get_cross_sell_html',
+                nonce: justb2b_cross_sell ? justb2b_cross_sell.nonce : ''
+            },
+            success: function (response) {
+                if (response.success && response.data) {
+                    onSuccess(response.data);
+                } else {
+                    // No products — remove skeleton silently
+                    onSuccess(null);
+                }
+            },
+            error: function () {
+                onSuccess(null);
+            }
+        });
+    }
+
     /**
      * JustB2B Cart Popup Cross-Sell
      *
@@ -16,19 +61,15 @@
                 // Remove any previous cross-sell block
                 $popup.find('.justb2b-popup-cross-sell').remove();
 
-                // Make AJAX call to get cross-sell HTML
-                $.ajax({
-                    url: woodmart_settings.ajaxurl || wc_add_to_cart_params.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'justb2b_get_cross_sell_html',
-                        nonce: justb2b_cross_sell ? justb2b_cross_sell.nonce : ''
-                    },
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            // Insert after the title (h3)
-                            $popup.find('h3').after(response.data);
-                        }
+                // Show skeleton immediately to reserve height
+                $popup.find('h3').after(SKELETON_HTML);
+
+                doAjax(function (html) {
+                    var $skeleton = $popup.find('.justb2b-cross-sell-skeleton');
+                    if (html) {
+                        $skeleton.replaceWith(html);
+                    } else {
+                        $skeleton.remove();
                     }
                 });
             }
@@ -45,18 +86,15 @@
             if ($cart.length) {
                 $cart.find('.justb2b-popup-cross-sell').remove();
 
-                // Make AJAX call to get cross-sell HTML
-                $.ajax({
-                    url: woodmart_settings.ajaxurl || wc_add_to_cart_params.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'justb2b_get_cross_sell_html',
-                        nonce: justb2b_cross_sell ? justb2b_cross_sell.nonce : ''
-                    },
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            $cart.prepend(response.data);
-                        }
+                // Show skeleton immediately to reserve height
+                $cart.prepend(SKELETON_HTML);
+
+                doAjax(function (html) {
+                    var $skeleton = $cart.find('.justb2b-cross-sell-skeleton');
+                    if (html) {
+                        $skeleton.replaceWith(html);
+                    } else {
+                        $skeleton.remove();
                     }
                 });
             }

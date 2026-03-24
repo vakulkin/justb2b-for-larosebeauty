@@ -318,3 +318,41 @@ body .wcpt-table a.wcpt-button[data-wcpt-link-code*="cart"] {
 .added-to-cart a.btn {
     width: 100%;
 }
+
+/* ── Cart Popup Cross-Sell Skeleton ── */
+@keyframes justb2b-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+}
+
+.justb2b-skeleton-block {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 800px 100%;
+    animation: justb2b-shimmer 1.4s infinite linear;
+    border-radius: 6px;
+}
+
+.justb2b-cross-sell-skeleton .justb2b-cross-sell-image {
+    pointer-events: none;
+}
+
+.justb2b-skeleton-title {
+    height: 14px;
+    width: 40%;
+    margin-bottom: 14px;
+}
+
+.justb2b-skeleton-line {
+    width: 70%;
+    margin: 4px auto 0;
+    pointer-events: none;
+}
+
+.justb2b-skeleton-name {
+    height: 11px;
+}
+
+.justb2b-skeleton-price {
+    height: 10px;
+    width: 40%;
+}

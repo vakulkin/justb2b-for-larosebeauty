@@ -249,11 +249,11 @@ class Cart_Handler
     }
 
     /**
-     * Get or create the single sample product "Mix próbek"
+     * Get or create the single sample product "Wsparcie Marketingowe"
      */
     private function get_or_create_sample_product()
     {
-        $product_name = 'Mix próbek';
+        $product_name = 'Wsparcie Marketingowe';
 
         // Check if product already exists by meta flag
         $existing_products = get_posts([
@@ -438,7 +438,7 @@ class Cart_Handler
         if ($is_sample === 'yes' && ! empty($cart_item['_b2b_sample_count']) && ! empty($cart_item['_b2b_sample_tier'])) {
             $count = $cart_item['_b2b_sample_count'];
             $tier = $cart_item['_b2b_sample_tier'];
-            return "Mix próbek, {$count} próbek - przy zamówieniu {$tier}";
+            return "Wsparcie Marketingowe, {$count} próbek - przy zamówieniu {$tier}";
         }
 
         return $name;
