@@ -140,9 +140,7 @@ JS;
 		}
 
 		/* Determine priority — right after billing_company */
-		$company_priority = isset( $fields['billing_company']['priority'] )
-			? (int) $fields['billing_company']['priority']
-			: 30;
+		$priority = 0;
 
 		$fields[ self::FIELD_FAKTURA ] = [
 			'label' => __( 'Chcę otrzymać fakturę VAT', 'justb2b-larose' ),
@@ -150,7 +148,7 @@ JS;
 			'class' => [ 'form-row-wide' ],
 			'type' => 'checkbox',
 			'clear' => true,
-			'priority' => $company_priority + 1,
+			'priority' => $priority + 1,
 		];
 
 		$fields[ self::FIELD_NIP ] = [
@@ -159,7 +157,7 @@ JS;
 			'required' => false,
 			'class' => [ 'form-row-wide', 'justb2b-nip-hidden' ],
 			'clear' => true,
-			'priority' => $company_priority + 2,
+			'priority' => $priority + 2,
 		];
 
 		return $fields;
