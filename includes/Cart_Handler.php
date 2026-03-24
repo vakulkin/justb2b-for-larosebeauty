@@ -37,6 +37,24 @@ class Cart_Handler
         add_filter('woocommerce_cart_item_name', [ $this, 'modify_sample_cart_item_name' ], 10, 3);
         add_action('woocommerce_cart_calculate_fees', [ $this, 'add_cod_fee' ]);
         add_action('wp_enqueue_scripts', [ $this, 'enqueue_checkout_assets' ]);
+        add_action('woocommerce_order_status_on-hold', [ $this, 'auto_process_b2b_bacs_order' ], 10, 2);
+    }
+
+    /**
+     * Auto-set order status to processing for B2B users who pay by bank transfer (BACS)
+     */
+    public function auto_process_b2b_bacs_order($order_id, $order)
+    {
+        if ($order->get_payment_method() !== 'bacs') {
+            return;
+        }
+
+        $user_id = $order->get_user_id();
+        if (! $user_id || ! Helper::is_b2b_accepted_user($user_id)) {
+            return;
+        }
+
+        $order->update_status('processing', __('Automatycznie ustawiono status na "w realizacji" dla zamówienia B2B z przelewem bankowym.', 'justb2b-larose'));
     }
 
     /**
