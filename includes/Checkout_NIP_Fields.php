@@ -80,6 +80,7 @@ class Checkout_NIP_Fields {
     function toggleNip(){
         var checked = $('#billing_faktura').is(':checked');
         var $field  = $('#billing_nip_field');
+        var $label  = $field.find('label');
         var $input  = $('#billing_nip');
 
         $field.toggle(checked);
@@ -87,13 +88,17 @@ class Checkout_NIP_Fields {
         if (checked) {
             $field.addClass('validate-required');
             $input.prop('required', true);
-            if (!$field.find('label abbr.required').length) {
-                $field.find('label').append('<abbr class="required" title="required">&nbsp;*</abbr>');
+            $label.find('.optional').hide();
+            if (!$label.find('abbr.required').length) {
+                $label.append('<abbr class="required" title="required">&nbsp;*</abbr>');
+            } else {
+                $label.find('abbr.required').show();
             }
         } else {
             $field.removeClass('validate-required woocommerce-invalid woocommerce-invalid-required-field');
             $input.prop('required', false).val('');
-            $field.find('label abbr.required').remove();
+            $label.find('abbr.required').hide();
+            $label.find('.optional').show();
         }
     }
     $(document.body).on('change','#billing_faktura',toggleNip);
