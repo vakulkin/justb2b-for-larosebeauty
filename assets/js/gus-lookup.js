@@ -133,16 +133,11 @@
 
         var lastNIP = '';
 
-        $nip.on('input.gus blur.gus', function () {
-            var raw = $(this).val().replace(/[\s-]/g, '');
-            $status.html('');
+        function showError(msg) {
+            $status.html('<span style="color:#c0392b;">' + msg + '</span>');
+        }
 
-            if (!/^\d{10}$/.test(raw)) { return; }
-            if (!validateNIP(raw)) {
-                $status.html('<span style="color:#c0392b;">Nieprawidłowy NIP (błędna cyfra kontrolna)</span>');
-                setTimeout(function () { $status.html(''); }, 4000);
-                return;
-            }
+        function tryLookup(raw) {
             if (raw === lastNIP) { return; }
             lastNIP = raw;
 
@@ -150,7 +145,7 @@
 
             fetchNIP(raw).then(function (data) {
                 if (!data) {
-                    $status.html('<span style="color:#e67e22;">Nie znaleziono danych</span>');
+                    showError('Nie znaleziono danych dla tego NIP');
                     setTimeout(function () { $status.html(''); }, 4000);
                     return;
                 }
@@ -165,6 +160,59 @@
                 $status.html('<span style="color:#27ae60;">✓ Uzupełniono</span>');
                 setTimeout(function () { $status.html(''); }, 3000);
             });
+        }
+
+        // While typing: give instant feedback on illegal characters or excess length
+        $nip.on('input.gus', function () {
+            var val = $(this).val();
+            var raw = val.replace(/[\s-]/g, '');
+            $status.html('');
+
+            if (val.length === 0) { return; }
+
+            if (/[^\d\s-]/.test(val)) {
+                showError('NIP może zawierać tylko cyfry');
+                return;
+            }
+            if (raw.length > 10) {
+                showError('NIP ma za dużo cyfr — wymagane dokładnie 10');
+                return;
+            }
+            // Full check once 10 digits are present
+            if (raw.length === 10) {
+                if (!validateNIP(raw)) {
+                    showError('Nieprawidłowy NIP (błędna cyfra kontrolna)');
+                    return;
+                }
+                tryLookup(raw);
+            }
+        });
+
+        // On blur: validate the complete value and report any remaining issues
+        $nip.on('blur.gus', function () {
+            var val = $(this).val();
+            var raw = val.replace(/[\s-]/g, '');
+            $status.html('');
+
+            if (raw.length === 0) { return; }
+
+            if (/[^\d\s-]/.test(val)) {
+                showError('NIP może zawierać tylko cyfry');
+                return;
+            }
+            if (raw.length < 10) {
+                showError('NIP jest za krótki — wymagane dokładnie 10 cyfr (wpisano ' + raw.length + ')');
+                return;
+            }
+            if (raw.length > 10) {
+                showError('NIP ma za dużo cyfr — wymagane dokładnie 10 (wpisano ' + raw.length + ')');
+                return;
+            }
+            if (!validateNIP(raw)) {
+                showError('Nieprawidłowy NIP (błędna cyfra kontrolna)');
+                return;
+            }
+            tryLookup(raw);
         });
     }
 
