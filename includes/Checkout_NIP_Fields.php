@@ -227,10 +227,13 @@ JS;
 	 */
 	public function add_admin_billing_fields( array $fields ): array {
 
+		/* show: false — keeps the field editable in the admin billing form
+		   but suppresses WooCommerce's own read-only rendering so our
+		   display_order_meta_fields block is the single place it appears. */
 		$fields['faktura'] = [
-			'label' => __( 'Faktura VAT', 'justb2b-larose' ),
-			'show' => false,
-			'type' => 'select',
+			'label'   => __( 'Faktura VAT', 'justb2b-larose' ),
+			'show'    => false,
+			'type'    => 'select',
 			'options' => [
 				'0' => __( 'No', 'justb2b-larose' ),
 				'1' => __( 'Yes', 'justb2b-larose' ),
@@ -239,7 +242,7 @@ JS;
 
 		$fields['nip'] = [
 			'label' => __( 'NIP', 'justb2b-larose' ),
-			'show' => true,
+			'show'  => false, /* displayed by display_order_meta_fields, not here */
 		];
 
 		return $fields;
@@ -301,19 +304,7 @@ JS;
 	 * @param \WC_Order $order Order object.
 	 */
 	private function output_b2b_column_html( \WC_Order $order ): void {
-		$faktura = $order->get_meta( self::FIELD_FAKTURA );
-		$nip = $order->get_meta( self::FIELD_NIP );
-		$status = $order->get_meta( self::META_KLIENT ) ?: 'guest';
-
-		$status_labels = [
-			'b2b_accepted' => 'B2B',
-			'b2b_pending' => 'Waiting for B2B',
-			'b2c' => 'B2C',
-			'guest' => 'Guest',
-		];
-
-		$klient_label = $status_labels[ $status ] ?? esc_html( $status );
-		$faktura_label = $faktura === '1' ? 'Tak' : 'Nie';
+		[ 'nip' => $nip, 'faktura_label' => $faktura_label, 'klient_label' => $klient_label ] = $this->get_order_display_data( $order );
 		?>
 		<small style="display:block;line-height:1.6;">
 			<strong>NIP:</strong> <?php echo esc_html( $nip ?: '—' ); ?><br>
@@ -334,19 +325,7 @@ JS;
 	 * @param \WC_Order $order Order object.
 	 */
 	public function display_order_meta_fields( \WC_Order $order ): void {
-		$faktura = $order->get_meta( self::FIELD_FAKTURA );
-		$nip = $order->get_meta( self::FIELD_NIP );
-		$status = $order->get_meta( self::META_KLIENT ) ?: 'guest';
-
-		$status_labels = [
-			'b2b_accepted' => __( 'B2B', 'justb2b-larose' ),
-			'b2b_pending' => __( 'Waiting for B2B', 'justb2b-larose' ),
-			'b2c' => __( 'B2C', 'justb2b-larose' ),
-			'guest' => __( 'Guest', 'justb2b-larose' ),
-		];
-
-		$klient_label = $status_labels[ $status ] ?? esc_html( $status );
-		$faktura_label = $faktura === '1' ? __( 'Tak', 'justb2b-larose' ) : __( 'Nie', 'justb2b-larose' );
+		[ 'nip' => $nip, 'faktura_label' => $faktura_label, 'klient_label' => $klient_label ] = $this->get_order_display_data( $order );
 		?>
 		<div class="justb2b-order-meta" style="margin-top:10px;">
 			<p><strong><?php esc_html_e( 'NIP:', 'justb2b-larose' ); ?></strong> <?php echo esc_html( $nip ?: '—' ); ?></p>
@@ -354,5 +333,34 @@ JS;
 			<p><strong><?php esc_html_e( 'Klient:', 'justb2b-larose' ); ?></strong> <?php echo esc_html( $klient_label ); ?></p>
 		</div>
 		<?php
+	}
+
+	/* ------------------------------------------------------------------
+	 * Helpers
+	 * ----------------------------------------------------------------*/
+
+	/**
+	 * Read and resolve display-ready B2B meta for an order.
+	 * Single source of truth used by both the order detail panel and the orders list column.
+	 *
+	 * @param \WC_Order $order Order object.
+	 * @return array{ nip: string, faktura_label: string, klient_label: string }
+	 */
+	private function get_order_display_data( \WC_Order $order ): array {
+		$faktura = $order->get_meta( self::FIELD_FAKTURA );
+		$status  = $order->get_meta( self::META_KLIENT ) ?: 'guest';
+
+		$status_labels = [
+			'b2b_accepted' => __( 'B2B', 'justb2b-larose' ),
+			'b2b_pending'  => __( 'Waiting for B2B', 'justb2b-larose' ),
+			'b2c'          => __( 'B2C', 'justb2b-larose' ),
+			'guest'        => __( 'Guest', 'justb2b-larose' ),
+		];
+
+		return [
+			'nip'          => (string) $order->get_meta( self::FIELD_NIP ),
+			'faktura_label' => $faktura === '1' ? __( 'Tak', 'justb2b-larose' ) : __( 'Nie', 'justb2b-larose' ),
+			'klient_label'  => $status_labels[ $status ] ?? $status,
+		];
 	}
 }
