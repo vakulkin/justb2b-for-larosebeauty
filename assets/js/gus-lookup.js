@@ -1,275 +1,187 @@
 /**
- * GUS NIP Lookup Script
- * Automatically fills form fields when user enters a 10-digit NIP
+ * GUS / MF White List NIP Lookup
+ *
+ * Queries the Polish Ministry of Finance API when a 10-digit NIP is
+ * entered in either the B2B registration form (justb2b_nip) or the
+ * WooCommerce checkout billing form (billing_nip).
  */
 (function ($) {
     'use strict';
 
-    /**
-     * Lookup company data from Polish Ministry of Finance White List API
-     */
-    async function lookupNIP(nip) {
-        try {
-            // Clean NIP - remove spaces and dashes
-            nip = nip.replace(/[\s-]/g, '');
+    // ── Form configurations ──────────────────────────────────────────────
+    // Each entry declares which NIP input to watch and which target fields
+    // to populate.  afterFill() is invoked once the fields are written.
 
-            // Validate NIP format (10 digits)
-            if (!/^\d{10}$/.test(nip)) {
-                return null;
+    var FORMS = [
+        {
+            nip:       'input[name="justb2b_nip"]',
+            company:   'input[name="justb2b_company"]',
+            city:      'input[name="justb2b_city"]',
+            postcode:  'input[name="justb2b_postcode"]',
+            address:   'input[name="justb2b_address_1"]',
+            afterFill: null,
+        },
+        {
+            nip:       'input[name="billing_nip"]',
+            company:   'input[name="billing_company"]',
+            city:      'input[name="billing_city"]',
+            postcode:  'input[name="billing_postcode"]',
+            address:   'input[name="billing_address_1"]',
+            afterFill: function () {
+                $(document.body).trigger('update_checkout');
+            },
+        },
+    ];
+
+    // ── Address parser ───────────────────────────────────────────────────
+    // Splits a MF API workingAddress/residenceAddress string of the form
+    // "STREET, POSTCODE CITY" into separate parts.
+
+    function parseAddress(raw) {
+        var result = { street: '', postcode: '', city: '' };
+        if (!raw) { return result; }
+
+        var parts = raw.split(',').map(function (s) { return s.trim(); });
+
+        if (parts.length >= 2) {
+            result.street = parts[0];
+            var rest = parts[1];
+            var m = rest.match(/(\d{2}-\d{3})/);
+            if (m) {
+                result.postcode = m[1];
+                result.city     = rest.replace(m[1], '').trim();
+            } else {
+                result.city = rest.trim();
             }
-
-            // Get current date in YYYY-MM-DD format
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-
-            // Use Polish Ministry of Finance White List API
-            const response = await fetch(`https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${dateStr}`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                console.error('MF API request failed:', response.status);
-                return null;
+        } else {
+            var m2 = raw.match(/(\d{2}-\d{3})/);
+            if (m2) {
+                result.postcode = m2[1];
+                result.street   = raw.substring(0, m2.index).trim();
+                result.city     = raw.substring(m2.index + m2[1].length).trim();
+            } else {
+                result.street = raw;
             }
-
-            const data = await response.json();
-            
-            // Check if company was found
-            if (!data || !data.result || !data.result.subject) {
-                return null;
-            }
-
-            const subject = data.result.subject;
-            
-            // Extract address components
-            let street = '';
-            let buildingNumber = '';
-            let apartmentNumber = '';
-            let city = '';
-            let postcode = '';
-            
-            // Try to parse workingAddress (format: "STREET NUMBER, POSTCODE CITY")
-            let addressToParse = subject.workingAddress || subject.residenceAddress || '';
-            
-            if (addressToParse) {
-                // Split by comma first
-                const parts = addressToParse.split(',').map(s => s.trim());
-                
-                if (parts.length >= 2) {
-                    // First part is street with building number
-                    street = parts[0];
-                    
-                    // Second part contains postcode and city
-                    const postcodeAndCity = parts[1].trim();
-                    
-                    // Extract postcode (XX-XXX format)
-                    const postcodeMatch = postcodeAndCity.match(/(\d{2}-\d{3})/);
-                    if (postcodeMatch) {
-                        postcode = postcodeMatch[1];
-                        // Everything after postcode is city
-                        city = postcodeAndCity.replace(postcode, '').trim();
-                    } else {
-                        // No postcode found, entire second part might be city
-                        city = postcodeAndCity;
-                    }
-                } else {
-                    // No comma, try to parse differently
-                    // Look for postcode pattern
-                    const postcodeMatch = addressToParse.match(/(\d{2}-\d{3})/);
-                    if (postcodeMatch) {
-                        postcode = postcodeMatch[1];
-                        
-                        // Split by postcode
-                        const beforePostcode = addressToParse.substring(0, postcodeMatch.index).trim();
-                        const afterPostcode = addressToParse.substring(postcodeMatch.index + postcode.length).trim();
-                        
-                        street = beforePostcode;
-                        city = afterPostcode;
-                    } else {
-                        // Fallback: entire address as street
-                        street = addressToParse;
-                    }
-                }
-            }
-            
-            return {
-                company_name: subject.name || '',
-                first_name: '',
-                last_name: '',
-                street: street,
-                building_number: buildingNumber,
-                apartment_number: apartmentNumber,
-                city: city,
-                postcode: postcode,
-                phone: '',
-                email: '',
-                regon: subject.regon || '',
-                krs: subject.krs || '',
-            };
-
-        } catch (error) {
-            console.error('Error looking up NIP:', error);
-            return null;
         }
+
+        return result;
     }
 
-    /**
-     * Fill form fields with company data
-     */
-    function fillFormFields(data) {
-        if (!data) return;
+    // ── NIP checksum validation ──────────────────────────────────────────
+    // Weights defined by the Polish tax authority (GUS/MF).
+    // Sum of (digit[i] * weight[i]) for i=0..8, modulo 11 must equal digit[9].
+    // A remainder of 10 is never assigned, so any such value is invalid.
 
-        // Map GUS data to form fields
-        const fieldMapping = {
-            'justb2b_company': data.company_name,
-            
-            'justb2b_firstname': data.first_name,
-            
-            'justb2b_lastname': data.last_name,
-            
-            'justb2b_city': data.city,
-            
-            'justb2b_postcode': data.postcode,
-            
-            'justb2b_phone': data.phone,
-            
-            'justb2b_email': data.email,
-        };
+    var NIP_WEIGHTS = [6, 5, 7, 2, 3, 4, 5, 6, 7];
 
-        // Construct address from street, building number, and apartment
-        let address = data.street || '';
-        if (data.building_number) {
-            address += (address ? ' ' : '') + data.building_number;
+    function validateNIP(nip) {
+        nip = nip.replace(/[\s-]/g, '');
+        if (nip.length === 10 && parseInt(nip, 10) > 0) {
+            var sum = 0;
+            for (var i = 0; i < 9; i++) {
+                sum += nip[i] * NIP_WEIGHTS[i];
+            }
+            return (sum % 11) === Number(nip[9]);
         }
-        if (data.apartment_number) {
-            address += '/' + data.apartment_number;
-        }
-
-        if (address) {
-            fieldMapping['justb2b_address_1'] = address;
-        }
-
-        // Fill the fields
-        Object.keys(fieldMapping).forEach(function (fieldName) {
-            const value = fieldMapping[fieldName];
-            if (!value) return;
-
-            // Try different field selectors
-            const selectors = [
-                `input[name="${fieldName}"]`,
-            ];
-
-            selectors.forEach(function (selector) {
-                const $field = $(selector);
-                if ($field.length) {
-                    $field.val(value).trigger('change');
-                }
-            });
-        });
+        return false;
     }
 
-    /**
-     * Initialize NIP lookup functionality
-     */
-    function initNIPLookup() {
-        // Find NIP input fields
-        const nipSelectors = [
-            'input[name="justb2b_nip"]',
-        ];
+    // ── MF White List API call ───────────────────────────────────────────
 
-        // Collect unique fields to avoid attaching multiple listeners
-        const processedFields = new Set();
+    function fetchNIP(nip) {
+        var date = new Date().toISOString().split('T')[0];
+        var url  = 'https://wl-api.mf.gov.pl/api/search/nip/' + nip + '?date=' + date;
 
-        nipSelectors.forEach(function (selector) {
-            const $nipFields = $(selector);
-            
-            $nipFields.each(function() {
-                const $nipField = $(this);
-                const fieldId = $nipField.attr('id') || $nipField.attr('name') || '';
-                
-                // Skip if already processed
-                if (processedFields.has(fieldId) || $nipField.data('gus-lookup-initialized')) {
+        return window.fetch(url, { headers: { Accept: 'application/json' } })
+            .then(function (res) {
+                if (!res.ok) { return null; }
+                return res.json();
+            })
+            .then(function (json) {
+                if (!json || !json.result || !json.result.subject) { return null; }
+                var s    = json.result.subject;
+                var addr = parseAddress(s.workingAddress || s.residenceAddress || '');
+                return {
+                    company:  s.name || '',
+                    street:   addr.street,
+                    postcode: addr.postcode,
+                    city:     addr.city,
+                };
+            })
+            .catch(function () { return null; });
+    }
+
+    // ── Field fill helper ────────────────────────────────────────────────
+
+    function fill(selector, value) {
+        if (!value) { return; }
+        var $el = $(selector);
+        if ($el.length) { $el.val(value).trigger('change'); }
+    }
+
+    // ── Attach lookup to a single NIP input ──────────────────────────────
+
+    function initField($nip, form) {
+        if ($nip.data('gus-init')) { return; }
+        $nip.data('gus-init', true);
+
+        // Status indicator inserted immediately after the NIP input
+        if (!$nip.next('.gus-status').length) {
+            $nip.after('<span class="gus-status" aria-live="polite"></span>');
+        }
+        var $status = $nip.next('.gus-status');
+
+        var lastNIP = '';
+
+        $nip.on('input.gus blur.gus', function () {
+            var raw = $(this).val().replace(/[\s-]/g, '');
+            $status.html('');
+
+            if (!/^\d{10}$/.test(raw)) { return; }
+            if (!validateNIP(raw)) {
+                $status.html('<span style="color:#c0392b;">Nieprawidłowy NIP (błędna cyfra kontrolna)</span>');
+                setTimeout(function () { $status.html(''); }, 4000);
+                return;
+            }
+            if (raw === lastNIP) { return; }
+            lastNIP = raw;
+
+            $status.html('<span style="color:#666;">Wyszukiwanie…</span>');
+
+            fetchNIP(raw).then(function (data) {
+                if (!data) {
+                    $status.html('<span style="color:#e67e22;">Nie znaleziono danych</span>');
+                    setTimeout(function () { $status.html(''); }, 4000);
                     return;
                 }
-                
-                // Mark as processed
-                processedFields.add(fieldId);
-                $nipField.data('gus-lookup-initialized', true);
-                
-                // Add loading indicator container if not exists
-                if (!$nipField.next('.gus-lookup-status').length) {
-                    $nipField.after('<span class="gus-lookup-status"></span>');
-                }
 
-                const $status = $nipField.next('.gus-lookup-status');
-                
-                // Store last fetched NIP to avoid duplicate requests
-                let lastFetchedNIP = '';
+                fill(form.company,  data.company);
+                fill(form.address,  data.street);
+                fill(form.postcode, data.postcode);
+                fill(form.city,     data.city);
 
-                // Add event listener for NIP input
-                $nipField.on('input.guslookup blur.guslookup', function () {
-                    const nip = $(this).val().replace(/[\s-]/g, '');
+                if (typeof form.afterFill === 'function') { form.afterFill(); }
 
-                    // Clear status
-                    $status.html('');
-
-                    // Only proceed if we have 10 digits
-                    if (nip.length === 10 && /^\d{10}$/.test(nip)) {
-                        // Skip if this NIP was already fetched
-                        if (nip === lastFetchedNIP) {
-                            return;
-                        }
-                        
-                        // Update last fetched NIP
-                        lastFetchedNIP = nip;
-                        
-                        // Show loading indicator
-                        $status.html('<span style="color: #666;">🔍 Wyszukiwanie w bazie MF...</span>');
-
-                        // Lookup NIP data
-                        lookupNIP(nip).then(function (data) {
-                            if (data) {
-                                $status.html('<span style="color: #4CAF50;">✓ Dane znalezione</span>');
-                                fillFormFields(data);
-                                
-                                // Clear status after 3 seconds
-                                setTimeout(function () {
-                                    $status.html('');
-                                }, 3000);
-                            } else {
-                                $status.html('<span style="color: #ff9800;">⚠ Nie znaleziono danych dla tego NIP</span>');
-                                
-                                // Clear status after 5 seconds
-                                setTimeout(function () {
-                                    $status.html('');
-                                }, 5000);
-                            }
-                        }).catch(function (error) {
-                            console.error('NIP lookup error:', error);
-                            $status.html('<span style="color: #f44336;">✗ Błąd podczas wyszukiwania</span>');
-                            
-                            // Clear status after 5 seconds
-                            setTimeout(function () {
-                                $status.html('');
-                            }, 5000);
-                        });
-                    }
-                });
+                $status.html('<span style="color:#27ae60;">✓ Uzupełniono</span>');
+                setTimeout(function () { $status.html(''); }, 3000);
             });
         });
     }
 
-    // Initialize on document ready
-    $(document).ready(function () {
-        initNIPLookup();
+    // ── Initialise all configured forms ──────────────────────────────────
 
-        // Re-initialize on AJAX complete (for dynamic forms)
-        $(document).ajaxComplete(function () {
-            setTimeout(initNIPLookup, 100);
+    function init() {
+        FORMS.forEach(function (form) {
+            $(form.nip).each(function () {
+                initField($(this), form);
+            });
         });
+    }
+
+    $(function () {
+        init();
+        // Re-init after AJAX (e.g. WooCommerce checkout fragment refresh)
+        $(document).ajaxComplete(function () { setTimeout(init, 150); });
     });
 
-})(jQuery);
+}(jQuery));
